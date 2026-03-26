@@ -1,6 +1,6 @@
 - name: Player
   description: >
-    There can be 2 to 4 players.
+    There can be 2 to 6 players.
 - name: Card
   description: >
     A game tile that has a number from 1 to 13 and a color (yellow, red, blue, black), or it is a joker (black or red).

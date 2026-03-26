@@ -5,11 +5,24 @@ import type { GameInfosDto } from "@/app/Game/application/Game";
 import type { GameBoardDto } from "@/app/GameBoard/domain/dtos/gameBoard";
 import { MIN_POINTS_TO_START } from "@/app/Player/domain/constants/player";
 import type { PlayerDto } from "@/app/Player/domain/dtos/player";
-import { useOrderedCards } from "@/composables/useOrderedCards";
 import type { ChangeEvent } from "@/lib/vueDraggable";
 import { toKey } from "@/logic/card";
 import type { CardDraggingHandler } from "@/logic/cardDragging";
 import Draggable from "vuedraggable";
+
+const NUM_ROWS = 3;
+
+type HandSpacer = { _spacer: true; _id: string };
+type HandCard = OrderedCardDto & { _spacer?: never };
+type HandItem = HandCard | HandSpacer;
+
+const isSpacer = (item: HandItem): item is HandSpacer => '_spacer' in item && item._spacer === true;
+
+let spacerSeq = 0;
+const makeSpacer = (): HandSpacer => ({ _spacer: true, _id: `sp${spacerSeq++}` });
+
+const itemKey = (item: HandItem): string =>
+  isSpacer(item) ? item._id : toKey(item);
 
 const props = defineProps<{
   gameBoard: GameBoardDto;
@@ -22,15 +35,60 @@ const props = defineProps<{
 const emit = defineEmits<{
   drawCard: [];
   cancelTurnModifications: [];
+  undoLastAction: [];
   endTurn: [];
 }>();
 
 const { t } = useI18n();
-const orderedCards = useOrderedCards();
+const { startDragging, stopDragging } = useDraggingCard();
 
-const cards = ref<Array<OrderedCardDto>>(
-  orderedCards.toOrdered([...props.player.cards]),
-);
+const handDragInProgress = ref(false);
+const cardAddedToHandRow = ref(false);
+
+const shuffle = <T,>(arr: T[]): T[] => {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+};
+
+const toHandCard = (card: CardDto, initialIndex: number): HandCard =>
+  Object.freeze({ color: card.color, number: card.number, duplicata: card.duplicata, initialIndex }) as HandCard;
+
+const addSpacers = (items: HandItem[], count: number) => {
+  for (let n = 0; n < count; n++) items.push(makeSpacer());
+};
+
+const SPACERS_BETWEEN = 0;
+const SPACERS_LEADING = 0;
+const SPACERS_TRAILING = 6;
+const MIN_TRAILING_SPACERS = 6;
+
+const interleaveWithSpacers = (cards: HandCard[]): HandItem[] => {
+  const items: HandItem[] = [];
+  addSpacers(items, SPACERS_LEADING);
+  for (let i = 0; i < cards.length; i++) {
+    items.push(cards[i]);
+    if (i < cards.length - 1) {
+      addSpacers(items, SPACERS_BETWEEN);
+    }
+  }
+  addSpacers(items, SPACERS_TRAILING);
+  return items;
+};
+
+const initializeRows = (serverCards: ReadonlyArray<CardDto>): HandItem[][] => {
+  const indexed = serverCards.map((c, i) => toHandCard(c, i));
+  const shuffled = shuffle(indexed);
+  const cardRows: HandCard[][] = Array.from({ length: NUM_ROWS }, () => []);
+  shuffled.forEach((card, i) => cardRows[i % NUM_ROWS].push(card));
+  return cardRows.map(interleaveWithSpacers);
+};
+
+const rows = ref<HandItem[][]>(initializeRows(props.player.cards));
+const hasInitializedWithCards = ref(props.player.cards.length > 0);
 
 const reconcileCards = (serverCards: ReadonlyArray<CardDto>) => {
   const pool = serverCards.map((card, index) => ({
@@ -39,57 +97,130 @@ const reconcileCards = (serverCards: ReadonlyArray<CardDto>) => {
     matched: false,
   }));
 
-  const kept: OrderedCardDto[] = [];
-  for (const local of cards.value) {
-    const match = pool.find(
-      (sc) =>
-        !sc.matched &&
-        sc.color === local.color &&
-        sc.number === local.number &&
-        sc.duplicata === local.duplicata,
-    );
-    if (match) {
-      match.matched = true;
-      kept.push(
-        Object.freeze({ color: match.color, number: match.number, duplicata: match.duplicata, initialIndex: match.initialIndex }),
+  const newRows: HandItem[][] = Array.from({ length: NUM_ROWS }, () => []);
+
+  for (let r = 0; r < NUM_ROWS; r++) {
+    for (const item of rows.value[r]) {
+      if (isSpacer(item)) {
+        newRows[r].push(item);
+        continue;
+      }
+      const match = pool.find(
+        (sc) =>
+          !sc.matched &&
+          sc.color === item.color &&
+          sc.number === item.number &&
+          sc.duplicata === item.duplicata,
       );
+      if (match) {
+        match.matched = true;
+        newRows[r].push(toHandCard(match, match.initialIndex));
+      } else {
+        newRows[r].push(makeSpacer());
+      }
     }
   }
 
-  const added = pool
-    .filter((sc) => !sc.matched)
-    .map((sc) =>
-      Object.freeze({ color: sc.color, number: sc.number, duplicata: sc.duplicata, initialIndex: sc.initialIndex }),
-    );
+  const added = pool.filter((sc) => !sc.matched);
+  for (const sc of added) {
+    const target = newRows.reduce((best, row, idx) => {
+      const spacerCount = row.filter(isSpacer).length;
+      const bestCount = newRows[best].filter(isSpacer).length;
+      return spacerCount > bestCount ? idx : best;
+    }, 0);
 
-  cards.value = [...kept, ...added];
+    const lastSpacerIdx = findLastIndex(newRows[target], isSpacer);
+    if (lastSpacerIdx !== -1) {
+      newRows[target][lastSpacerIdx] = toHandCard(sc, sc.initialIndex);
+    } else {
+      newRows[target].push(toHandCard(sc, sc.initialIndex));
+    }
+  }
+
+  rows.value = newRows;
+  ensureTrailingSpacers();
+};
+
+const ensureTrailingSpacers = () => {
+  for (const row of rows.value) {
+    let trailingCount = 0;
+    for (let i = row.length - 1; i >= 0; i--) {
+      if (isSpacer(row[i])) trailingCount++;
+      else break;
+    }
+    const needed = MIN_TRAILING_SPACERS - trailingCount;
+    for (let n = 0; n < needed; n++) {
+      row.push(makeSpacer());
+    }
+  }
+};
+
+const findLastIndex = <T,>(arr: T[], predicate: (item: T) => boolean): number => {
+  for (let i = arr.length - 1; i >= 0; i--) {
+    if (predicate(arr[i])) return i;
+  }
+  return -1;
 };
 
 watch(
   () => props.player,
   (player) => {
-    reconcileCards(player.cards);
+    if (!hasInitializedWithCards.value && player.cards.length > 0) {
+      rows.value = initializeRows(player.cards);
+      hasInitializedWithCards.value = true;
+    } else {
+      reconcileCards(player.cards);
+    }
   },
 );
+
+const handleChange = (e: ChangeEvent<HandItem>) => {
+  if (e.added && !isSpacer(e.added.element)) {
+    if (handDragInProgress.value) {
+      cardAddedToHandRow.value = true;
+    } else {
+      props.cardDraggingHandler.toHand();
+    }
+  }
+  if (e.removed && !isSpacer(e.removed.element)) {
+    if (cardAddedToHandRow.value) {
+      cardAddedToHandRow.value = false;
+    } else {
+      props.cardDraggingHandler.from((e.removed.element as HandCard).initialIndex, null);
+    }
+  }
+  ensureTrailingSpacers();
+};
+
+const handleDragStart = (e: { oldIndex: number }, rowIndex: number) => {
+  handDragInProgress.value = true;
+  const item = rows.value[rowIndex][e.oldIndex];
+  if (item && !isSpacer(item)) startDragging(item);
+};
+
+const handleDragEnd = () => {
+  handDragInProgress.value = false;
+  cardAddedToHandRow.value = false;
+  stopDragging();
+};
+
+const turnFlash = ref(false);
 
 watch(
-  () => orderedCards.isOrderedByColor.value,
-  () => {
-    cards.value = orderedCards.toOrdered([...props.player.cards]);
+  () => props.player.isPlaying,
+  (isPlaying, wasPlaying) => {
+    if (isPlaying && !wasPlaying) {
+      turnFlash.value = true;
+      setTimeout(() => (turnFlash.value = false), 1000);
+    }
   },
 );
-
-const handleChange = (e: ChangeEvent<OrderedCardDto>) => {
-  if (e.added) {
-    props.cardDraggingHandler.toHand();
-  }
-  if (e.removed) {
-    props.cardDraggingHandler.from(e.removed.element.initialIndex, null);
-  }
-};
 </script>
 <template>
-  <div class="bg-body-bg border-t flex flex-col gap-2 px-2 py-4">
+  <div
+    class="bg-body-bg border-t flex flex-col gap-1 px-2 py-3"
+    :class="[turnFlash && 'deck-flash']"
+  >
     <GameRuleReminder
       v-if="player.isPlaying && !player.hasStarted"
       :game-rule="'first_turn'"
@@ -105,39 +236,101 @@ const handleChange = (e: ChangeEvent<OrderedCardDto>) => {
 
     <PlayerActions
       :player="player"
-      :is-ordered-by-color="orderedCards.isOrderedByColor.value"
-      :is-ordered-by-number="orderedCards.isOrderedByNumber.value"
       :game="game"
       @cancel-turn-modifications="emit('cancelTurnModifications')"
+      @undo-last-action="emit('undoLastAction')"
       @draw-card="emit('drawCard')"
       @end-turn="emit('endTurn')"
-      @order-by-color="orderedCards.orderByColor()"
-      @order-by-number="orderedCards.orderByNumber()"
     />
 
-    <div v-if="player" class="flex justify-start items-start flex-wrap gap-3">
-      <Draggable
-        v-model="cards"
-        :group="{
-          name: 'combinations',
-          pull: player.isPlaying,
-          put: player.isPlaying,
-        }"
-        tag="div"
-        class="justify-start items-start flex-wrap gap-0.5 inline-flex"
-        :item-key="(card: CardDto) => toKey(card)"
-        :sort="true"
-        @change="handleChange"
+    <div v-if="player" class="flex flex-col gap-0.5">
+      <div
+        v-for="(row, rowIndex) in rows"
+        :key="rowIndex"
+        class="hand-row"
       >
-        <template #item="{ element: card }: { element: OrderedCardDto }">
-          <Card
-            :color="card.color"
-            :number="card.number"
-            :movable="player.isPlaying"
-            :highlighted="highlightedCardIndex === card.initialIndex"
-          />
-        </template>
-      </Draggable>
+        <Draggable
+          v-model="rows[rowIndex]"
+          :group="{
+            name: 'combinations',
+            pull: true,
+            put: true,
+          }"
+          tag="div"
+          class="hand-row-inner"
+          :item-key="itemKey"
+          :sort="true"
+          filter=".hand-spacer"
+          :preventOnFilter="false"
+          @change="handleChange"
+          @start="(e: any) => handleDragStart(e, rowIndex)"
+          @end="handleDragEnd"
+        >
+          <template #item="{ element }">
+            <div
+              v-if="isSpacer(element)"
+              class="hand-spacer"
+            />
+            <Card
+              v-else
+              :color="element.color"
+              :number="element.number"
+              :movable="true"
+              :highlighted="highlightedCardIndex === element.initialIndex"
+            />
+          </template>
+        </Draggable>
+      </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.hand-row {
+  min-height: 2.75rem;
+  border-radius: 0.375rem;
+  background: #EBEBEB;
+  padding: 0.25rem;
+  overflow-x: auto;
+}
+
+@media (min-width: 768px) {
+  .hand-row {
+    min-height: 4rem;
+  }
+}
+
+.hand-row-inner {
+  display: inline-flex;
+  align-items: start;
+  gap: 2px;
+  min-width: 100%;
+  min-height: inherit;
+}
+
+.hand-spacer {
+  width: 1rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .hand-spacer {
+    width: 1.25rem;
+    height: 4rem;
+  }
+}
+
+.deck-flash {
+  animation: deck-glow 1s ease-out;
+}
+
+@keyframes deck-glow {
+  0% {
+    box-shadow: inset 0 4px 12px rgba(63, 132, 21, 0.5);
+  }
+  100% {
+    box-shadow: inset 0 0 0 transparent;
+  }
+}
+</style>

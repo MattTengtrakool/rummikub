@@ -37,13 +37,13 @@
         <Card class="rotate-12 -ml-1" color="blue" :number="7" />
       </div>
       <h1 class="text-4xl font-bold tracking-tight">Rummikub</h1>
-      <NuxtLink
-        to="/rules"
+      <button
+        @click="modal.open(GameRulesModal)"
         class="text-xs text-body-text-disabled hover:text-body-text transition-colors flex items-center gap-1.5"
       >
         <BookOpenIcon class="size-3.5" />
         {{ t("pages.home.see_rules") }}
-      </NuxtLink>
+      </button>
     </div>
 
     <div class="mt-12 mb-auto w-full max-w-xs flex flex-col items-center gap-5">
@@ -86,7 +86,9 @@
 import { useLightMode } from "@/composables/useLightMode";
 import { BookOpenIcon } from "@heroicons/vue/20/solid";
 import { UserCircleIcon } from "@heroicons/vue/20/solid";
+import GameRulesModal from "@/components/GameRulesModal.vue";
 
+const modal = useModal();
 const { username } = useUsername();
 const { t } = useI18n();
 

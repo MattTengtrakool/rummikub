@@ -20,6 +20,7 @@ export type PlayerDto = {
   canMoveCardAlone: boolean;
   canMoveCardToCombination: boolean;
   canCancelTurnModifications: boolean;
+  canUndoLastAction: boolean;
   canEndTurn: boolean;
   canInteractWithCombination: Array<boolean>;
   handValue: number;

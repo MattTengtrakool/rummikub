@@ -1,6 +1,7 @@
 import type { CardDto } from "@/app/Card/domain/dtos/card";
 import type { CardListDto } from "@/app/Card/domain/dtos/cardList";
 import { canStartWithPoints } from "@/app/Combination/domain/gamerules/canStartWith";
+import type { CombinationDto } from "@/app/Combination/domain/dtos/combination";
 import type { IDrawStack } from "@/app/DrawStack/application/DrawStack";
 import type { IGame } from "@/app/Game/application/Game";
 import type {
@@ -12,6 +13,11 @@ import type { PlayerDto, PlayerId } from "@/app/Player/domain/dtos/player";
 import { handValue as calculateHandValue } from "@/app/Player/domain/gamerules/handValue";
 import { isWinnerPlayer } from "@/app/Player/domain/gamerules/hasWon";
 import { generate } from "random-words";
+
+type TurnSnapshot = {
+  cards: CardListDto;
+  combinations: ReadonlyArray<CombinationDto>;
+};
 
 export interface IPlayer {
   admin: boolean;
@@ -33,6 +39,8 @@ export interface IPlayer {
   returnCardToHand(source: CardPositionOnBoard): void;
   canReturnCardToHand(source: CardPositionOnBoard): boolean;
   cancelTurnModifications(): void;
+  undoLastAction(): void;
+  canUndoLastAction(): boolean;
   endTurn(): void;
   pass(): void;
   canDrawCard(): boolean;
@@ -83,6 +91,7 @@ export class Player implements IPlayer {
 
   private hasDrawnThisTurn: boolean = false;
   private _isPlaying: boolean = false;
+  private turnHistory: TurnSnapshot[] = [];
 
   constructor(props: PlayerProps) {
     this.game = props.game;
@@ -102,6 +111,15 @@ export class Player implements IPlayer {
     this.previousTurnCards = Object.freeze([...this.cards]);
   }
 
+  private pushToHistory() {
+    this.turnHistory.push({
+      cards: Object.freeze([...this.cards]),
+      combinations: Object.freeze([
+        ...this.gameBoard.toDto().combinations,
+      ]),
+    });
+  }
+
   drawStartupCards(): void {
     if (this.hasDrawnStartupCards) {
       throw new Error("Player has already draw startup cards");
@@ -116,9 +134,11 @@ export class Player implements IPlayer {
     this.gameBoard.beginTurn();
     this._isPlaying = true;
     this.hasDrawnThisTurn = false;
+    this.turnHistory = [];
   }
 
   placeCardAlone(cardIndex: number): CombinationPositionOnBoard {
+    this.pushToHistory();
     return this.gameBoard.placeCardAlone(this.giveCard(cardIndex));
   }
 
@@ -126,6 +146,7 @@ export class Player implements IPlayer {
     cardIndex: number,
     destination: CardPositionOnBoard,
   ): void {
+    this.pushToHistory();
     this.gameBoard.placeCardInCombination(
       this.giveCard(cardIndex),
       destination,
@@ -133,6 +154,7 @@ export class Player implements IPlayer {
   }
 
   moveCardAlone(source: CardPositionOnBoard): CombinationPositionOnBoard {
+    this.pushToHistory();
     return this.gameBoard.moveCardAlone(source);
   }
 
@@ -140,10 +162,12 @@ export class Player implements IPlayer {
     source: CardPositionOnBoard,
     destination: CardPositionOnBoard,
   ): void {
+    this.pushToHistory();
     this.gameBoard.moveCardToCombination(source, destination);
   }
 
   returnCardToHand(source: CardPositionOnBoard): void {
+    this.pushToHistory();
     const card = this.gameBoard.removeCardFromBoard(source);
     this.cards = Object.freeze([...this.cards, card]);
   }
@@ -162,6 +186,23 @@ export class Player implements IPlayer {
     this.saveTurnCards();
 
     this.gameBoard.cancelTurnModifications();
+    this.turnHistory = [];
+  }
+
+  undoLastAction(): void {
+    const snapshot = this.turnHistory.pop();
+    if (!snapshot) return;
+
+    this.cards = Object.freeze([...snapshot.cards]);
+    this.gameBoard.restoreFromSnapshot(snapshot.combinations);
+  }
+
+  canUndoLastAction(): boolean {
+    return (
+      this._isPlaying &&
+      !this.hasDrawnThisTurn &&
+      this.turnHistory.length > 0
+    );
   }
 
   private canStart(): boolean {
@@ -349,6 +390,7 @@ export class Player implements IPlayer {
       canMoveCardAlone: this.canMoveCardAlone(),
       canMoveCardToCombination: this.canMoveCardToCombination(),
       canCancelTurnModifications: this.canCancelTurnModifications(),
+      canUndoLastAction: this.canUndoLastAction(),
       canEndTurn: this.canEndTurn(),
       canInteractWithCombination: this.gameBoard
         .toDto()

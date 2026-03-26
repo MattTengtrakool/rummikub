@@ -23,9 +23,11 @@ describe("Game", () => {
       expect(secondPlayer.admin).toBe(false);
     });
 
-    test("can't add more than 4 players", () => {
+    test("can't add more than 6 players", () => {
       const game = new Game({ id: "game" });
 
+      game.addPlayer();
+      game.addPlayer();
       game.addPlayer();
       game.addPlayer();
       game.addPlayer();
@@ -105,9 +107,11 @@ describe("Game", () => {
   });
 
   describe("isFull", () => {
-    test("return false when lest than 4 players", () => {
+    test("return false when less than 6 players", () => {
       const game = new Game({ id: "game" });
 
+      game.addPlayer();
+      game.addPlayer();
       game.addPlayer();
       game.addPlayer();
       game.addPlayer();
@@ -115,9 +119,11 @@ describe("Game", () => {
       expect(game.isFull()).toBeFalsy();
     });
 
-    test("return true when 4 players", () => {
+    test("return true when 6 players", () => {
       const game = new Game({ id: "game" });
 
+      game.addPlayer();
+      game.addPlayer();
       game.addPlayer();
       game.addPlayer();
       game.addPlayer();
@@ -196,6 +202,8 @@ describe("Game", () => {
     test("return false if already full", () => {
       const game = new Game({ id: "game", state: "created" });
 
+      game.addPlayer();
+      game.addPlayer();
       game.addPlayer();
       game.addPlayer();
       game.addPlayer();

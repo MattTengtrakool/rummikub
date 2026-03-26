@@ -26,17 +26,29 @@
     "
   >
     <nav class="flex gap-2 p-4 border-b border-separator items-center justify-between">
-      <span v-if="game.gameInfos.value.state === 'created'" class="text-sm font-medium">
-        {{ t("pages.game.invite_code") }}
-      </span>
+      <div class="flex items-center gap-3">
+        <span v-if="game.gameInfos.value.state === 'created'" class="text-sm font-medium">
+          {{ t("pages.game.invite_code") }}
+        </span>
       <template v-if="game.gameInfos.value.state === 'started'">
-        <span v-if="game.selfPlayer.value.isPlaying" class="text-sm font-bold">
+        <span
+          v-if="game.selfPlayer.value.isPlaying"
+          class="text-sm font-bold text-white bg-button-text-success px-3 py-1 rounded-full animate-pulse"
+        >
           {{ t("pages.game.your_turn") }}
         </span>
         <span v-else class="text-sm text-body-text-disabled">
           {{ t("pages.game.turn_of", { username: game.gameInfos.value.currentPlayerUsername }) }}
         </span>
       </template>
+
+        <TimerDisplay
+          v-if="game.gameInfos.value.state === 'started' && game.gameInfos.value.timerSettings.enabled"
+          :remaining="game.timerRemaining.value"
+          :expired="game.timerExpired.value"
+          :strict="game.gameInfos.value.timerSettings.strict"
+        />
+      </div>
 
       <div class="flex gap-2">
         <Button @click="modal.open(GameRulesModal)">
@@ -71,13 +83,27 @@
           </span>
         </div>
         <button
-          @click="copyCode"
+          @click="copyLink"
           class="flex items-center gap-1.5 text-xs text-body-text-disabled hover:text-body-text transition-colors mt-1"
         >
-          <CheckIcon v-if="codeCopied" class="size-3.5 text-button-text-success" />
+          <CheckIcon v-if="linkCopied" class="size-3.5 text-button-text-success" />
           <ClipboardDocumentIcon v-else class="size-3.5" />
-          {{ codeCopied ? t("pages.game.copied") : String(params.id) }}
+          {{ linkCopied ? t("pages.game.copied") : gameLink }}
         </button>
+      </div>
+
+      <TimerSettingsPanel
+        v-if="game.selfPlayer.value?.admin"
+        :timer-settings="game.gameInfos.value.timerSettings"
+        @update="game.updateSettings({ timerSettings: $event })"
+      />
+
+      <div
+        v-else-if="game.gameInfos.value.timerSettings.enabled"
+        class="flex flex-col items-center gap-1 text-sm text-body-text-disabled"
+      >
+        <span>{{ t("pages.game.timer.label") }}: {{ game.gameInfos.value.timerSettings.durationSeconds }}s</span>
+        <span>{{ game.gameInfos.value.timerSettings.strict ? t("pages.game.timer.strict") : t("pages.game.timer.relaxed") }}</span>
       </div>
 
       <div class="flex flex-col items-center gap-4">
@@ -108,9 +134,11 @@
       :game-board="game.gameBoard.value"
       :card-dragging-handler="game.cardDraggingHandler"
       :player="game.selfPlayer.value"
+      :remote-cursors="game.remoteCursors.value"
+      :move-cursor="game.moveCursor"
     ></GameBoard>
 
-    <div class="relative">
+    <div v-if="game.gameInfos.value.state !== 'created'" class="relative">
       <ActionsLogs
         class="pointer-events-none absolute bottom-full w-full"
         :actions="game.logs.value"
@@ -123,6 +151,7 @@
         :game="game.gameInfos.value"
         :highlighted-card-index="game.highlightedCard.value?.indexInHand"
         @cancel-turn-modifications="game.cancelTurnModifications()"
+        @undo-last-action="game.undoLastAction()"
         @draw-card="game.drawCard()"
         @pass="game.pass()"
         @end-turn="game.endTurn()"
@@ -152,10 +181,11 @@ function handleLeaveGame() {
   navigateTo("/");
 }
 
-const codeCopied = ref(false);
-async function copyCode() {
-  await navigator.clipboard.writeText(String(params.id));
-  codeCopied.value = true;
-  setTimeout(() => (codeCopied.value = false), 2000);
+const gameLink = computed(() => `${window.location.origin}/games/${params.id}`);
+const linkCopied = ref(false);
+async function copyLink() {
+  await navigator.clipboard.writeText(gameLink.value);
+  linkCopied.value = true;
+  setTimeout(() => (linkCopied.value = false), 2000);
 }
 </script>

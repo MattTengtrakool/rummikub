@@ -24,6 +24,8 @@
             "title": "Game over",
             "winner": "{username} won!",
             "you_won": "You won!",
+            "you_lost": "You lost",
+            "better_luck": "Better luck next time!",
             "player_left": "A player left the game",
             "stalemate_subtitle": "Draw pile empty",
             "stalemate_explanation": "No one could play. Lowest remaining tile value wins.",
@@ -32,7 +34,18 @@
         "leave_game_confirm": "Are you sure you want to leave? This will end the game for everyone.",
         "connected_usernames": "{n} person connected | {n} people connected",
         "your_turn": "Your turn",
-        "turn_of": "{username}'s turn"
+        "turn_of": "{username}'s turn",
+        "timer": {
+            "label": "Turn timer",
+            "duration": "Duration",
+            "mode": "Mode",
+            "strict": "Strict",
+            "relaxed": "Relaxed",
+            "strict_description": "Auto-draw when time runs out",
+            "relaxed_description": "Warning only when time runs out",
+            "seconds": "{n}s",
+            "times_up": "Time's up!"
+        }
     },
     "rules": {
         "back_home": "Back to home"

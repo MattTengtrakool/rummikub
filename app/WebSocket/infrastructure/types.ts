@@ -1,4 +1,5 @@
-import type { GameInfosDto } from "@/app/Game/application/Game";
+import type { CardColor, CardNumber } from "@/app/Card/domain/dtos/card";
+import type { GameInfosDto, TimerSettings } from "@/app/Game/application/Game";
 import type { CardPositionOnBoard } from "@/app/GameBoard/application/GameBoard";
 import type { GameBoardDto } from "@/app/GameBoard/domain/dtos/gameBoard";
 import type { IPlayer } from "@/app/Player/application/Player";
@@ -19,6 +20,7 @@ export interface ServerToClientEvents {
   "player.played": (player: PlayerDto) => void;
   "player.passed": (player: PlayerDto) => void;
   "player.canceledTurnModifications": (player: PlayerDto) => void;
+  "player.undoneAction": (player: PlayerDto) => void;
   "player.movedCard": (
     player: PlayerDto,
     cardPosition: CardPositionOnBoard,
@@ -27,6 +29,10 @@ export interface ServerToClientEvents {
   "game.infos.update": (game: GameInfosDto) => void;
   "connectedUsernames.update": (usernames: Record<string, boolean>) => void;
   "opponents.update": (opponents: OpponentDto[]) => void;
+  "cursor.update": (cursor: RemoteCursor) => void;
+  "timer.start": (durationSeconds: number) => void;
+  "timer.expired": () => void;
+  "game.settings.update": (settings: { timerSettings: TimerSettings }) => void;
 }
 
 export interface ClientToServerEvents {
@@ -45,9 +51,31 @@ export interface ClientToServerEvents {
   ) => void;
   "player.returnCardToHand": (source: CardPositionOnBoard) => void;
   "player.cancelTurnModifications": () => void;
+  "player.undoLastAction": () => void;
   "player.endTurn": () => void;
   "player.pass": () => void;
+  "cursor.move": (position: CursorPosition) => void;
+  "game.updateSettings": (settings: { timerSettings: TimerSettings }) => void;
 }
+
+export type DraggingCardInfo = {
+  color: CardColor;
+  number: CardNumber;
+  sourcePosition?: {
+    combinationIndex: number;
+    cardIndex: number;
+  };
+};
+
+export type CursorPosition = {
+  x: number;
+  y: number;
+  draggingCard?: DraggingCardInfo;
+};
+
+export type RemoteCursor = CursorPosition & {
+  username: string;
+};
 
 export interface InterServerEvents {}
 

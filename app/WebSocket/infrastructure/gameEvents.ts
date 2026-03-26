@@ -1,4 +1,4 @@
-import type { IGame } from "@/app/Game/application/Game";
+import type { GameId, IGame } from "@/app/Game/application/Game";
 import { type IGameManager } from "@/app/Game/application/GameManager";
 import type { IPlayer } from "@/app/Player/application/Player";
 import type { PlayerDto } from "@/app/Player/domain/dtos/player";
@@ -19,6 +19,68 @@ export const registerGameEvents = ({
   io: WebSocketNamespace;
   gameManager: IGameManager;
 }) => {
+  const turnTimers = new Map<GameId, NodeJS.Timeout>();
+
+  const clearTurnTimer = (gameId: GameId) => {
+    const existing = turnTimers.get(gameId);
+    if (existing) {
+      clearTimeout(existing);
+      turnTimers.delete(gameId);
+    }
+  };
+
+  const startTurnTimer = (game: IGame) => {
+    clearTurnTimer(game.id);
+
+    if (!game.timerSettings.enabled) return;
+
+    const timeout = setTimeout(() => {
+      turnTimers.delete(game.id);
+
+      if (!game.isStarted()) return;
+
+      io.to(gameRoom(game)).emit("timer.expired");
+
+      if (!game.timerSettings.strict) return;
+
+      try {
+        const current = game.currentPlayer();
+
+        if (current.canCancelTurnModifications()) {
+          current.cancelTurnModifications();
+        }
+
+        if (current.canDrawCard()) {
+          current.drawCard();
+          emitGameUpdate(game);
+          io.to(gameRoom(game)).emit("player.drawnCard", current.toDto());
+        } else {
+          current.pass();
+          emitGameUpdate(game);
+          io.to(gameRoom(game)).emit("player.passed", current.toDto());
+        }
+
+        if (game.isStarted()) {
+          emitTimerStart(game);
+          startTurnTimer(game);
+        }
+      } catch (e) {
+        console.error("Timer expiry error:", e);
+      }
+    }, game.timerSettings.durationSeconds * 1000);
+
+    turnTimers.set(game.id, timeout);
+  };
+
+  const emitTimerStart = (game: IGame) => {
+    if (game.timerSettings.enabled && game.isStarted()) {
+      io.to(gameRoom(game)).emit(
+        "timer.start",
+        game.timerSettings.durationSeconds,
+      );
+    }
+  };
+
   const emitGameUpdate = (game: IGame) => {
     io.to(gameRoom(game)).emit("game.infos.update", game.toInfosDto());
 
@@ -78,6 +140,10 @@ export const registerGameEvents = ({
       console.log("A player disconnected");
       console.log(`${game.playerCount} players`);
 
+      if (game.isEnded()) {
+        clearTurnTimer(game.id);
+      }
+
       emitGameUpdate(game);
       emitConnectionsUpdate(game);
     });
@@ -91,6 +157,20 @@ export const registerGameEvents = ({
 
       game.start();
       emitGameUpdate(game);
+      emitTimerStart(game);
+      startTurnTimer(game);
+    });
+
+    socket.on("game.updateSettings", (settings) => {
+      if (!player.admin || game.isStarted() || game.isEnded()) {
+        return;
+      }
+
+      game.setTimerSettings(settings.timerSettings);
+      io.to(gameRoom(game)).emit("game.settings.update", {
+        timerSettings: game.timerSettings,
+      });
+      emitGameUpdate(game);
     });
 
     socket.on("game.leave", () => {
@@ -100,6 +180,10 @@ export const registerGameEvents = ({
         gameId: game.id,
         username: player.username,
       });
+
+      if (game.isEnded()) {
+        clearTurnTimer(game.id);
+      }
 
       emitGameUpdate(game);
       emitConnectionsUpdate(game);
@@ -120,6 +204,16 @@ export const registerGameEvents = ({
       );
     });
 
+    socket.on("player.undoLastAction", () => {
+      if (!player.canUndoLastAction()) {
+        return;
+      }
+
+      player.undoLastAction();
+      emitGameUpdate(game);
+      io.to(gameRoom(game)).emit("player.undoneAction", player.toDto());
+    });
+
     socket.on("player.drawCard", () => {
       if (!player.canDrawCard()) {
         return;
@@ -128,6 +222,13 @@ export const registerGameEvents = ({
       player.drawCard();
       emitGameUpdate(game);
       io.to(gameRoom(game)).emit("player.drawnCard", player.toDto());
+
+      if (game.isStarted()) {
+        emitTimerStart(game);
+        startTurnTimer(game);
+      } else {
+        clearTurnTimer(game.id);
+      }
     });
 
     socket.on("player.endTurn", () => {
@@ -138,6 +239,13 @@ export const registerGameEvents = ({
       player.endTurn();
       emitGameUpdate(game);
       io.to(gameRoom(game)).emit("player.played", player.toDto());
+
+      if (game.isStarted()) {
+        emitTimerStart(game);
+        startTurnTimer(game);
+      } else {
+        clearTurnTimer(game.id);
+      }
     });
 
     socket.on("player.pass", () => {
@@ -148,6 +256,13 @@ export const registerGameEvents = ({
       player.pass();
       emitGameUpdate(game);
       io.to(gameRoom(game)).emit("player.passed", player.toDto());
+
+      if (game.isStarted()) {
+        emitTimerStart(game);
+        startTurnTimer(game);
+      } else {
+        clearTurnTimer(game.id);
+      }
     });
 
     socket.on("player.moveCardAlone", (source) => {
@@ -197,6 +312,13 @@ export const registerGameEvents = ({
       io.to(gameRoom(game)).emit("player.movedCard", player.toDto(), {
         combinationIndex,
         cardIndex: 0,
+      });
+    });
+
+    socket.on("cursor.move", (position) => {
+      socket.to(gameRoom(game)).emit("cursor.update", {
+        ...position,
+        username: player.username,
       });
     });
 

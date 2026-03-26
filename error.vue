@@ -13,10 +13,8 @@ const { t } = useI18n();
     class="w-full h-screen flex flex-col items-center justify-center bg-body-bg text-body-text"
   >
     <h1 class="text-xl mb-2">{{ error.statusCode }}</h1>
-    <NuxtLink to="/">
-      <Button>
-        {{ t("error.back_home") }}
-      </Button>
-    </NuxtLink>
+    <Button href="/">
+      {{ t("error.back_home") }}
+    </Button>
   </div>
 </template>

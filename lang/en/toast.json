@@ -15,6 +15,9 @@
     "canceled_1": "{name} took it all back",
     "canceled_2": "{name} hit undo",
     "canceled_3": "{name} reconsidered",
+    "undone": "{name} undid last move",
+    "timer_forced_draw": "{name} ran out of time and drew a tile",
+    "timer_forced_pass": "{name} ran out of time and passed",
     "won": "{name} won the game!",
     "player_left": "A player left the game"
   }

@@ -13,6 +13,7 @@ defineProps<{
   movable?: boolean;
   locked?: boolean;
   highlighted?: boolean;
+  dimmed?: boolean;
   number: CardNumber;
   color: CardColor;
 }>();
@@ -25,8 +26,8 @@ const dragHintOpen = ref(false);
   <div
     @click="dragHintOpen=true"
     @mousedown="dragHintOpen = false"
-    class="border border-card-border relative overflow-hidden select-none w-9 h-11 md:w-12 md:h-16 bg-card-bg rounded flex-col justify-center items-center gap-1 inline-flex"
-    :class="[movable && 'hover:shadow-lg cursor-move', highlighted && 'ring-4']"
+    class="border border-card-border relative overflow-hidden select-none w-9 h-11 md:w-12 md:h-16 bg-card-bg rounded flex-col justify-center items-center gap-1 inline-flex transition-opacity duration-200"
+    :class="[movable && 'hover:shadow-lg cursor-move', highlighted && 'ring-4', dimmed && 'opacity-25 border-dashed']"
   >
     <template v-if="isJokerNumber(number)">
       <BlackJokerSymbol
@@ -48,10 +49,12 @@ const dragHintOpen = ref(false);
       {{ number }}
     </span>
 
-    <RedCardSymbol class="size-2 md:size-3" v-if="color === 'red'" />
-    <BlueCardSymbol class="size-2 md:size-3" v-if="color === 'blue'" />
-    <YellowCardSymbol class="size-2 md:size-3" v-if="color === 'yellow'" />
-    <BlackCardSymbol class="size-2 md:size-3" v-if="color === 'black'" />
+    <template v-if="!isJokerNumber(number)">
+      <RedCardSymbol class="size-2 md:size-3" v-if="color === 'red'" />
+      <BlueCardSymbol class="size-2 md:size-3" v-if="color === 'blue'" />
+      <YellowCardSymbol class="size-2 md:size-3" v-if="color === 'yellow'" />
+      <BlackCardSymbol class="size-2 md:size-3" v-if="color === 'black'" />
+    </template>
 
     <div
       v-if="locked"

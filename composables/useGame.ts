@@ -1,11 +1,18 @@
-import type { GameInfosDto } from "@/app/Game/application/Game";
+import type {
+  GameInfosDto,
+  TimerSettings,
+} from "@/app/Game/application/Game";
 import type { CardPositionOnBoard } from "@/app/GameBoard/application/GameBoard";
 import type { GameBoardDto } from "@/app/GameBoard/domain/dtos/gameBoard";
 import type { PlayerDto } from "@/app/Player/domain/dtos/player";
-import type { OpponentDto } from "@/app/WebSocket/infrastructure/types";
+import type {
+  OpponentDto,
+  RemoteCursor,
+} from "@/app/WebSocket/infrastructure/types";
 import GameEndModal from "@/components/GameEndModal.vue";
 import { makeCardDraggingHandler } from "@/logic/cardDragging";
 import { setupGameSocket } from "@/logic/gameSocket";
+import { useSound } from "@/composables/useSound";
 
 type HighlightedCard = {
   positionOnBoard?: CardPositionOnBoard;
@@ -23,6 +30,9 @@ export const useGame = (gameId: any, username: any) => {
 
   const modal = useModal();
   const { t } = useI18n();
+  const { play } = useSound();
+
+  let wasPlaying = false;
 
   const connected = ref(false);
   const disconnected = ref<boolean>();
@@ -32,6 +42,38 @@ export const useGame = (gameId: any, username: any) => {
   const connectedUsernames = ref<Record<string, boolean>>();
   const opponents = ref<OpponentDto[]>([]);
   const highlightedCard = ref<HighlightedCard>();
+  const remoteCursors = ref<Map<string, RemoteCursor>>(new Map());
+
+  const timerRemaining = ref<number | null>(null);
+  const timerExpired = ref(false);
+  let timerInterval: ReturnType<typeof setInterval> | null = null;
+  let timerForcedTurn = false;
+
+  const clearLocalTimer = () => {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+  };
+
+  const TIMER_WARNING_THRESHOLD = 10;
+
+  const startLocalTimer = (durationSeconds: number) => {
+    clearLocalTimer();
+    timerRemaining.value = durationSeconds;
+    timerExpired.value = false;
+
+    timerInterval = setInterval(() => {
+      if (timerRemaining.value !== null && timerRemaining.value > 0) {
+        timerRemaining.value--;
+        if (timerRemaining.value <= TIMER_WARNING_THRESHOLD && timerRemaining.value > 0) {
+          play("timer-tick", 0.3);
+        }
+      } else {
+        clearLocalTimer();
+      }
+    }, 1000);
+  };
 
   const actionsLogs = ref<Array<string>>([]);
   const logAction = (action: string) => actionsLogs.value.push(action);
@@ -55,11 +97,19 @@ export const useGame = (gameId: any, username: any) => {
     placeCardAlone,
     placeCardInCombination,
     returnCardToHand,
+    moveCursor,
+    undoLastAction: rawUndoLastAction,
+    updateSettings,
   } = setupGameSocket({
     gameId,
     username,
     onSelfPlayerUpdate(newSelfPlayer) {
+      if (newSelfPlayer.isPlaying && !wasPlaying) {
+        play("your-turn");
+      }
+      wasPlaying = newSelfPlayer.isPlaying;
       selfPlayer.value = newSelfPlayer;
+      undoPending = false;
     },
     onGameBoardUpdate(newGameBoard) {
       gameBoard.value = newGameBoard;
@@ -69,6 +119,7 @@ export const useGame = (gameId: any, username: any) => {
         newGameInfos.state === "started" &&
         gameInfos.value?.state === "created"
       ) {
+        play("game-start");
         logAction(
           t("toast.player_actions.game_started", {
             name: newGameInfos.currentPlayerUsername,
@@ -76,7 +127,16 @@ export const useGame = (gameId: any, username: any) => {
         );
       }
 
-      if (newGameInfos.state === "ended") {
+      if (
+        newGameInfos.state === "ended" &&
+        gameInfos.value?.state !== "ended"
+      ) {
+        const isWinner = newGameInfos.winnerUsername === username;
+        play(isWinner ? "game-end-win" : "game-end-lose");
+        clearLocalTimer();
+        timerRemaining.value = null;
+        timerExpired.value = false;
+
         modal.open(GameEndModal, {
           winnerUsername: newGameInfos.winnerUsername,
           selfUsername: username,
@@ -102,16 +162,21 @@ export const useGame = (gameId: any, username: any) => {
     },
     onPlayerPassed(player) {
       const name = displayName(player);
-      logAction(
-        t(
-          pick(
-            "toast.player_actions.passed_1",
-            "toast.player_actions.passed_2",
-            "toast.player_actions.passed_3",
+      if (timerForcedTurn) {
+        timerForcedTurn = false;
+        logAction(t("toast.player_actions.timer_forced_pass", { name }));
+      } else {
+        logAction(
+          t(
+            pick(
+              "toast.player_actions.passed_1",
+              "toast.player_actions.passed_2",
+              "toast.player_actions.passed_3",
+            ),
+            { name },
           ),
-          { name },
-        ),
-      );
+        );
+      }
     },
     onPlayerCanceledTurnModifications(player) {
       const name = displayName(player);
@@ -126,20 +191,30 @@ export const useGame = (gameId: any, username: any) => {
         ),
       );
     },
+    onPlayerUndoneAction(player) {
+      const name = displayName(player);
+      logAction(t("toast.player_actions.undone", { name }));
+    },
     onPlayerDrawnCard(player) {
       const name = displayName(player);
       const count = player.cards.length;
-      logAction(
-        t(
-          pick(
-            "toast.player_actions.drawn_card_1",
-            "toast.player_actions.drawn_card_2",
-            "toast.player_actions.drawn_card_3",
+      if (timerForcedTurn) {
+        timerForcedTurn = false;
+        logAction(t("toast.player_actions.timer_forced_draw", { name }));
+      } else {
+        logAction(
+          t(
+            pick(
+              "toast.player_actions.drawn_card_1",
+              "toast.player_actions.drawn_card_2",
+              "toast.player_actions.drawn_card_3",
+            ),
+            { name, count },
           ),
-          { name, count },
-        ),
-      );
+        );
+      }
       if (player.id === selfPlayer.value?.id) {
+        play("card-draw");
         highlightedCard.value = {
           indexInHand: player.cards.length - 1,
         };
@@ -166,11 +241,38 @@ export const useGame = (gameId: any, username: any) => {
     },
     onPlayerMovedCard(player, cardPosition) {
       if (player.id === selfPlayer.value?.id) {
+        play("card-place");
         return;
       }
+      play("card-place-opponent", 0.4);
       highlightedCard.value = {
         positionOnBoard: cardPosition,
       };
+    },
+    onCursorUpdate(cursor) {
+      const updated = new Map(remoteCursors.value);
+      updated.set(cursor.username, cursor);
+      remoteCursors.value = updated;
+    },
+    onTimerStart(durationSeconds) {
+      startLocalTimer(durationSeconds);
+    },
+    onTimerExpired() {
+      timerExpired.value = true;
+      clearLocalTimer();
+      timerRemaining.value = 0;
+      play("timer-up", 0.5);
+      if (gameInfos.value?.timerSettings.strict) {
+        timerForcedTurn = true;
+      }
+    },
+    onSettingsUpdate(settings) {
+      if (gameInfos.value) {
+        gameInfos.value = {
+          ...gameInfos.value,
+          timerSettings: settings.timerSettings,
+        };
+      }
     },
     onConnect() {
       connected.value = true;
@@ -179,8 +281,16 @@ export const useGame = (gameId: any, username: any) => {
     onDisconnect() {
       connected.value = false;
       disconnected.value = true;
+      clearLocalTimer();
     },
   });
+
+  let undoPending = false;
+  const undoLastAction = () => {
+    if (undoPending) return;
+    undoPending = true;
+    rawUndoLastAction();
+  };
 
   const cardDraggingHandler = makeCardDraggingHandler({
     placeCardAlone,
@@ -199,13 +309,19 @@ export const useGame = (gameId: any, username: any) => {
     connectedUsernames,
     opponents,
     highlightedCard,
+    remoteCursors,
     logs,
+    timerRemaining,
+    timerExpired,
     startGame,
     leaveGame,
     cancelTurnModifications,
+    undoLastAction,
     drawCard,
     endTurn,
     pass,
+    moveCursor,
+    updateSettings,
     cardDraggingHandler,
   };
 };

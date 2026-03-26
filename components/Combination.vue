@@ -9,9 +9,11 @@ import Draggable from "vuedraggable";
 
 const props = defineProps<{
   highlightedCardIndex?: number;
+  dimmedCardIndex?: number;
   disabled?: boolean;
   locked?: boolean;
   combination: CombinationDto;
+  combinationIndex: number;
 }>();
 
 const emit = defineEmits<{
@@ -21,6 +23,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const { startDragging, stopDragging } = useDraggingCard();
 
 const cards = ref([...props.combination.cards]);
 
@@ -42,6 +45,18 @@ const handleChange = (e: ChangeEvent<CardDto>) => {
     return emit("removed", e.removed.element, e.removed.oldIndex);
   }
 };
+
+const handleDragStart = (e: { oldIndex: number }) => {
+  const card = cards.value[e.oldIndex];
+  startDragging({
+    color: card.color,
+    number: card.number,
+    sourcePosition: {
+      combinationIndex: props.combinationIndex,
+      cardIndex: e.oldIndex,
+    },
+  });
+};
 </script>
 <template>
   <div class="w-min flex flex-col items-center gap-1 p-2 px-4">
@@ -53,10 +68,13 @@ const handleChange = (e: ChangeEvent<CardDto>) => {
       class="justify-start items-start gap-0.5 inline-flex p-2 -m-2"
       :item-key="(card: CardDto) => toKey(card)"
       @change="handleChange"
+      @start="handleDragStart"
+      @end="stopDragging"
     >
       <template #item="{ element: card, index }">
         <Card
           :highlighted="index === highlightedCardIndex"
+          :dimmed="index === dimmedCardIndex"
           :movable="!disabled"
           :locked="locked"
           :color="card.color"

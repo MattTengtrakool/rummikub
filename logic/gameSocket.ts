@@ -1,10 +1,15 @@
-import type { GameInfosDto } from "@/app/Game/application/Game";
+import type {
+  GameInfosDto,
+  TimerSettings,
+} from "@/app/Game/application/Game";
 import type { CardPositionOnBoard } from "@/app/GameBoard/application/GameBoard";
 import type { GameBoardDto } from "@/app/GameBoard/domain/dtos/gameBoard";
 import type { PlayerDto } from "@/app/Player/domain/dtos/player";
 import type {
   ClientToServerEvents,
+  CursorPosition,
   OpponentDto,
+  RemoteCursor,
   ServerToClientEvents,
 } from "@/app/WebSocket/infrastructure/types";
 import { io, Socket } from "socket.io-client";
@@ -17,11 +22,16 @@ export const setupGameSocket = ({
   onPlayerPlayed,
   onPlayerPassed,
   onPlayerCanceledTurnModifications,
+  onPlayerUndoneAction,
   onPlayerMovedCard,
   onGameBoardUpdate,
   onGameInfosUpdate,
   onConnectedUsernamesUpdate,
   onOpponentsUpdate,
+  onCursorUpdate,
+  onTimerStart,
+  onTimerExpired,
+  onSettingsUpdate,
   onConnect,
   onDisconnect,
 }: {
@@ -32,6 +42,7 @@ export const setupGameSocket = ({
   onPlayerPlayed: (player: PlayerDto) => void;
   onPlayerPassed: (player: PlayerDto) => void;
   onPlayerCanceledTurnModifications: (player: PlayerDto) => void;
+  onPlayerUndoneAction: (player: PlayerDto) => void;
   onPlayerMovedCard: (
     player: PlayerDto,
     cardPosition: CardPositionOnBoard,
@@ -42,6 +53,10 @@ export const setupGameSocket = ({
     newConnectedUsernames: Record<string, boolean>,
   ) => void;
   onOpponentsUpdate: (opponents: OpponentDto[]) => void;
+  onCursorUpdate: (cursor: RemoteCursor) => void;
+  onTimerStart: (durationSeconds: number) => void;
+  onTimerExpired: () => void;
+  onSettingsUpdate: (settings: { timerSettings: TimerSettings }) => void;
   onConnect: () => void;
   onDisconnect: () => void;
 }) => {
@@ -80,6 +95,10 @@ export const setupGameSocket = ({
     onPlayerCanceledTurnModifications(player);
   });
 
+  socket.on("player.undoneAction", (player) => {
+    onPlayerUndoneAction(player);
+  });
+
   socket.on("player.movedCard", (player, cardPosition) => {
     onPlayerMovedCard(player, cardPosition);
   });
@@ -94,6 +113,22 @@ export const setupGameSocket = ({
 
   socket.on("opponents.update", (opponents) => {
     onOpponentsUpdate(opponents);
+  });
+
+  socket.on("cursor.update", (cursor) => {
+    onCursorUpdate(cursor);
+  });
+
+  socket.on("timer.start", (durationSeconds) => {
+    onTimerStart(durationSeconds);
+  });
+
+  socket.on("timer.expired", () => {
+    onTimerExpired();
+  });
+
+  socket.on("game.settings.update", (settings) => {
+    onSettingsUpdate(settings);
   });
 
   socket.on("connect_error", (error) => {
@@ -117,6 +152,10 @@ export const setupGameSocket = ({
 
   const cancelTurnModifications = () => {
     socket.emit("player.cancelTurnModifications");
+  };
+
+  const undoLastAction = () => {
+    socket.emit("player.undoLastAction");
   };
 
   const drawCard = () => {
@@ -157,11 +196,20 @@ export const setupGameSocket = ({
     socket.emit("player.returnCardToHand", source);
   };
 
+  const moveCursor = (position: CursorPosition) => {
+    socket.emit("cursor.move", position);
+  };
+
+  const updateSettings = (settings: { timerSettings: TimerSettings }) => {
+    socket.emit("game.updateSettings", settings);
+  };
+
   return {
     socket,
     startGame,
     leaveGame,
     cancelTurnModifications,
+    undoLastAction,
     drawCard,
     endTurn,
     pass,
@@ -170,5 +218,7 @@ export const setupGameSocket = ({
     placeCardAlone,
     placeCardInCombination,
     returnCardToHand,
+    moveCursor,
+    updateSettings,
   };
 };

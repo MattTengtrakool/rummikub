@@ -466,6 +466,7 @@ describe("Player", () => {
         canMoveCardAlone: false,
         canMoveCardToCombination: false,
         canCancelTurnModifications: false,
+        canUndoLastAction: false,
         canEndTurn: false,
         canInteractWithCombination: [],
         canPass: false,

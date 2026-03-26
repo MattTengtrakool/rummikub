@@ -39,6 +39,8 @@ export interface IGameBoard {
 
   cancelTurnModifications(): void;
 
+  restoreFromSnapshot(combinations: ReadonlyArray<CombinationDto>): void;
+
   hasModifications(): boolean;
 
   isEmpty(): boolean;
@@ -151,6 +153,12 @@ export class GameBoard implements IGameBoard {
     );
 
     this.saveTurnCombinations();
+  }
+
+  restoreFromSnapshot(combinations: ReadonlyArray<CombinationDto>): void {
+    this.combinations = combinations.map(
+      (dto) => new Combination({ cards: dto.cards }),
+    );
   }
 
   hasModifications(): boolean {

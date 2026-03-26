@@ -30,6 +30,18 @@ export type GameDto = {
   isFull: boolean;
 };
 
+export type TimerSettings = {
+  enabled: boolean;
+  durationSeconds: number;
+  strict: boolean;
+};
+
+export const DEFAULT_TIMER_SETTINGS: TimerSettings = {
+  enabled: false,
+  durationSeconds: 60,
+  strict: false,
+};
+
 export type GameInfosDto = {
   id: GameId;
   state: GameState;
@@ -38,6 +50,7 @@ export type GameInfosDto = {
   currentPlayerUsername?: string;
   winnerUsername?: string;
   endReason?: GameEndReason;
+  timerSettings: TimerSettings;
 };
 
 type AddPlayerProps = {
@@ -46,6 +59,7 @@ type AddPlayerProps = {
 
 export interface IGame {
   id: GameId;
+  timerSettings: TimerSettings;
 
   addPlayer(props?: AddPlayerProps, PlayerClass?: IPlayerFactory): IPlayer;
 
@@ -56,6 +70,8 @@ export interface IGame {
   removePlayer(id: string): void;
 
   get playerCount(): number;
+
+  setTimerSettings(settings: TimerSettings): void;
 
   start(): void;
 
@@ -98,10 +114,12 @@ export type GameProps = {
   gameBoard?: IGameBoard;
   state?: GameState;
   generateUserId?: GenerateUserIdFn;
+  timerSettings?: TimerSettings;
 };
 
 export class Game implements IGame {
   public readonly id: GameId;
+  public timerSettings: TimerSettings;
 
   private readonly usernames = ["Alice", "Bob", "Carol", "Dave"];
   private drawStack: IDrawStack;
@@ -118,6 +136,7 @@ export class Game implements IGame {
     this.gameBoard = props.gameBoard ?? new GameBoard({});
     this.state = props.state ?? "created";
     this.generateUserId = props.generateUserId ?? (() => uuidv4());
+    this.timerSettings = props.timerSettings ?? { ...DEFAULT_TIMER_SETTINGS };
   }
 
   isFull(): boolean {
@@ -308,6 +327,13 @@ export class Game implements IGame {
     this.endReason = reason;
   }
 
+  setTimerSettings(settings: TimerSettings): void {
+    if (this.state !== "created") {
+      throw new Error("Cannot change settings after game has started");
+    }
+    this.timerSettings = { ...settings };
+  }
+
   canStart(): boolean {
     return this.state === "created" && isPlayerCountValid(this.players.length);
   }
@@ -346,6 +372,7 @@ export class Game implements IGame {
       winnerUsername:
         this.state === "ended" ? this.winner()?.username : undefined,
       endReason: this.endReason,
+      timerSettings: this.timerSettings,
     };
   }
 }
