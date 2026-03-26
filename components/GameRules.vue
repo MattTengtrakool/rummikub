@@ -45,7 +45,7 @@
           </p>
 
           <div class="flex gap-2 justify-center">
-            <Combination disabled :combination="suiteExample" />
+            <Combination disabled :combination="suiteExample" :combination-index="0" />
           </div>
         </div>
       </template>
@@ -57,7 +57,7 @@
           </p>
 
           <div class="flex gap-2 justify-center">
-            <Combination disabled :combination="serieExample" />
+            <Combination disabled :combination="serieExample" :combination-index="0" />
           </div>
         </div>
       </template>
@@ -73,14 +73,14 @@
           </p>
 
           <div class="flex flex-col items-center">
-            <Combination disabled :combination="invalidStartupExample" />
+            <Combination disabled :combination="invalidStartupExample" :combination-index="0" />
             <p class="text-center text-xs">
               {{ t("rules.first_turn.examples.invalid") }}
             </p>
           </div>
 
           <div class="flex flex-col items-center">
-            <Combination disabled :combination="validStartupExample" />
+            <Combination disabled :combination="validStartupExample" :combination-index="0" />
             <p class="text-center text-xs">
               {{ t("rules.first_turn.examples.valid") }}
             </p>
@@ -99,28 +99,28 @@
           </p>
 
           <div class="flex flex-col items-center">
-            <Combination disabled :combination="serieExample" />
+            <Combination disabled :combination="serieExample" :combination-index="0" />
             <p class="text-center text-xs">
               {{ t("rules.combination_modification.examples.add") }}
             </p>
           </div>
 
           <div class="flex flex-col items-center">
-            <Combination disabled :combination="removeExample" />
+            <Combination disabled :combination="removeExample" :combination-index="0" />
             <p class="text-center text-xs">
               {{ t("rules.combination_modification.examples.remove") }}
             </p>
           </div>
 
           <div class="flex flex-col items-center">
-            <Combination disabled :combination="replaceExample" />
+            <Combination disabled :combination="replaceExample" :combination-index="0" />
             <p class="text-center text-xs">
               {{ t("rules.combination_modification.examples.replace") }}
             </p>
           </div>
 
           <div class="flex flex-col items-center">
-            <Combination disabled :combination="splitExample" />
+            <Combination disabled :combination="splitExample" :combination-index="0" />
             <p class="text-center text-xs">
               {{ t("rules.combination_modification.examples.split") }}
             </p>
