@@ -346,6 +346,93 @@ describe("Player", () => {
     });
   });
 
+  describe("canDrawCard", () => {
+    test("return false when draw stack is empty", () => {
+      const player = new Player({
+        id: "player",
+        drawStack: new DrawStack({ cards: [] }),
+        gameBoard: new GameBoard({}),
+        cards: [{ color: "black", number: 1, duplicata: 1 }],
+      });
+
+      player.beginTurn();
+
+      expect(player.canDrawCard()).toBe(false);
+    });
+
+    test("return true when playing and stack has cards", () => {
+      const player = new Player({
+        id: "player",
+        drawStack: new DrawStack({
+          cards: [{ color: "red", number: 5, duplicata: 1 }],
+        }),
+        gameBoard: new GameBoard({}),
+        cards: [{ color: "black", number: 1, duplicata: 1 }],
+      });
+
+      player.beginTurn();
+
+      expect(player.canDrawCard()).toBe(true);
+    });
+  });
+
+  describe("canPass", () => {
+    test("return true when playing and draw stack is empty", () => {
+      const player = new Player({
+        id: "player",
+        drawStack: new DrawStack({ cards: [] }),
+        gameBoard: new GameBoard({}),
+        cards: [{ color: "black", number: 1, duplicata: 1 }],
+      });
+
+      player.beginTurn();
+
+      expect(player.canPass()).toBe(true);
+    });
+
+    test("return false when draw stack has cards", () => {
+      const player = new Player({
+        id: "player",
+        drawStack: new DrawStack({
+          cards: [{ color: "red", number: 5, duplicata: 1 }],
+        }),
+        gameBoard: new GameBoard({}),
+        cards: [{ color: "black", number: 1, duplicata: 1 }],
+      });
+
+      player.beginTurn();
+
+      expect(player.canPass()).toBe(false);
+    });
+
+    test("return false when not playing", () => {
+      const player = new Player({
+        id: "player",
+        drawStack: new DrawStack({ cards: [] }),
+        gameBoard: new GameBoard({}),
+        cards: [{ color: "black", number: 1, duplicata: 1 }],
+      });
+
+      expect(player.canPass()).toBe(false);
+    });
+  });
+
+  describe("handValue", () => {
+    test("return sum of card numbers", () => {
+      const player = new Player({
+        id: "player",
+        drawStack: new DrawStack({}),
+        gameBoard: new GameBoard({}),
+        cards: [
+          { color: "black", number: 5, duplicata: 1 },
+          { color: "red", number: 8, duplicata: 1 },
+        ],
+      });
+
+      expect(player.handValue()).toBe(13);
+    });
+  });
+
   describe("toDto", () => {
     test("return corresponding dto", () => {
       const player = new Player({
@@ -381,6 +468,8 @@ describe("Player", () => {
         canCancelTurnModifications: false,
         canEndTurn: false,
         canInteractWithCombination: [],
+        canPass: false,
+        handValue: 3,
       });
     });
   });

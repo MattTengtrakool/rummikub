@@ -93,6 +93,20 @@ export const registerGameEvents = ({
       emitGameUpdate(game);
     });
 
+    socket.on("game.leave", () => {
+      console.log(`${player.username} left game ${game.id}`);
+
+      gameManager.leave({
+        gameId: game.id,
+        username: player.username,
+      });
+
+      emitGameUpdate(game);
+      emitConnectionsUpdate(game);
+
+      socket.disconnect();
+    });
+
     socket.on("player.cancelTurnModifications", () => {
       if (!player.canCancelTurnModifications()) {
         return;
@@ -126,6 +140,16 @@ export const registerGameEvents = ({
       io.to(gameRoom(game)).emit("player.played", player.toDto());
     });
 
+    socket.on("player.pass", () => {
+      if (!player.canPass()) {
+        return;
+      }
+
+      player.pass();
+      emitGameUpdate(game);
+      io.to(gameRoom(game)).emit("player.passed", player.toDto());
+    });
+
     socket.on("player.moveCardAlone", (source) => {
       if (!player.canMoveCardAlone()) {
         return;
@@ -151,6 +175,16 @@ export const registerGameEvents = ({
         player.toDto(),
         destination,
       );
+    });
+
+    socket.on("player.returnCardToHand", (source) => {
+      if (!player.canReturnCardToHand(source)) {
+        emitGameUpdate(game);
+        return;
+      }
+
+      player.returnCardToHand(source);
+      emitGameUpdate(game);
     });
 
     socket.on("player.placeCardAlone", (cardIndex) => {

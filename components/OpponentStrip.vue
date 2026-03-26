@@ -30,13 +30,7 @@ const MAX_VISIBLE_TILES = 14;
           :key="n"
           class="w-3 h-4 md:w-4 md:h-5 rounded-sm bg-gray-400/80 border border-gray-500/40"
         />
-        <span
-          v-if="opponent.cardCount > MAX_VISIBLE_TILES"
-          class="text-[10px] text-body-text-disabled ml-0.5"
-        >
-          +{{ opponent.cardCount - MAX_VISIBLE_TILES }}
-        </span>
-        <span v-else class="text-[10px] text-body-text-disabled ml-1">
+        <span class="text-[10px] text-body-text-disabled ml-1">
           {{ opponent.cardCount }}
         </span>
       </div>

@@ -37,6 +37,7 @@ export type GameInfosDto = {
   playersCount: number;
   currentPlayerUsername?: string;
   winnerUsername?: string;
+  endReason?: GameEndReason;
 };
 
 type AddPlayerProps = {
@@ -58,17 +59,21 @@ export interface IGame {
 
   start(): void;
 
-  end(): void;
+  end(reason?: GameEndReason): void;
 
   nextPlayerAfter(currentPlayer: IPlayer): IPlayer;
 
   beginTurnOfNextPlayer(): void;
 
+  playerPassed(): void;
+
+  resetConsecutivePasses(): void;
+
   isFull(): boolean;
 
   currentPlayer(): IPlayer;
 
-  winner(): IPlayer;
+  winner(): IPlayer | undefined;
 
   canStart(): boolean;
 
@@ -84,6 +89,7 @@ export interface IGame {
 }
 
 export type GameState = "created" | "started" | "ended";
+export type GameEndReason = "win" | "forfeit" | "stalemate";
 export type GameId = string;
 
 export type GameProps = {
@@ -103,6 +109,8 @@ export class Game implements IGame {
   private players: Array<IPlayer> = [];
   private state: GameState;
   private generateUserId: GenerateUserIdFn;
+  private consecutivePasses: number = 0;
+  private endReason?: GameEndReason;
 
   constructor(props: GameProps) {
     this.id = props.id;
@@ -162,7 +170,7 @@ export class Game implements IGame {
     }
 
     if (this.state === "started") {
-      this.end();
+      this.end("forfeit");
     }
   }
 
@@ -244,6 +252,20 @@ export class Game implements IGame {
     this.nextPlayerAfter(this.currentPlayer()).beginTurn();
   }
 
+  playerPassed(): void {
+    this.consecutivePasses++;
+
+    if (this.consecutivePasses >= this.players.length) {
+      this.end("stalemate");
+    } else {
+      this.beginTurnOfNextPlayer();
+    }
+  }
+
+  resetConsecutivePasses(): void {
+    this.consecutivePasses = 0;
+  }
+
   currentPlayer(): IPlayer {
     if (this.state !== "started") {
       throw new Error("Game has not started");
@@ -260,26 +282,30 @@ export class Game implements IGame {
     return player;
   }
 
-  winner(): IPlayer {
+  winner(): IPlayer | undefined {
     if (this.state !== "ended") {
       throw new Error("Game has not ended");
     }
 
-    const player = this.players.find((player) => player.hasWon());
+    const normalWinner = this.players.find((player) => player.hasWon());
+    if (normalWinner) return normalWinner;
 
-    if (!player) {
-      throw new Error("No winner");
+    if (this.endReason === "stalemate" && this.players.length > 0) {
+      return this.players.reduce((lowest, player) =>
+        player.handValue() < lowest.handValue() ? player : lowest,
+      );
     }
 
-    return player;
+    return undefined;
   }
 
-  end(): void {
+  end(reason: GameEndReason = "win"): void {
     if (this.state !== "started") {
       throw new Error("Game has not started");
     }
 
     this.state = "ended";
+    this.endReason = reason;
   }
 
   canStart(): boolean {
@@ -318,7 +344,8 @@ export class Game implements IGame {
       currentPlayerUsername:
         this.state === "started" ? this.currentPlayer().username : undefined,
       winnerUsername:
-        this.state === "ended" ? this.winner().username : undefined
+        this.state === "ended" ? this.winner()?.username : undefined,
+      endReason: this.endReason,
     };
   }
 }

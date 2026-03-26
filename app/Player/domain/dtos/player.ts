@@ -14,6 +14,7 @@ export type PlayerDto = {
   hasWon: boolean;
   canStartGame: boolean;
   canDrawCard: boolean;
+  canPass: boolean;
   canPlaceCardAlone: boolean;
   canPlaceCardInCombination: boolean;
   canMoveCardAlone: boolean;
@@ -21,4 +22,5 @@ export type PlayerDto = {
   canCancelTurnModifications: boolean;
   canEndTurn: boolean;
   canInteractWithCombination: Array<boolean>;
+  handValue: number;
 };

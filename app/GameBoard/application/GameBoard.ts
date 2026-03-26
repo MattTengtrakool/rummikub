@@ -29,6 +29,10 @@ export interface IGameBoard {
     destination: CardPositionOnBoard,
   ): void;
 
+  removeCardFromBoard(source: CardPositionOnBoard): CardDto;
+
+  wasCardOnBoardBeforeTurn(source: CardPositionOnBoard): boolean;
+
   wasCombinationPlacedThisTurn(combinationIndex: number): boolean;
 
   deleteEmptyCombinations(): void;
@@ -114,6 +118,26 @@ export class GameBoard implements IGameBoard {
     );
 
     this.deleteEmptyCombinations();
+  }
+
+  removeCardFromBoard(source: CardPositionOnBoard): CardDto {
+    const combo = this.combinations[source.combinationIndex];
+    const card = combo.pickCardFrom(source.cardIndex);
+    this.deleteEmptyCombinations();
+    return card;
+  }
+
+  wasCardOnBoardBeforeTurn(source: CardPositionOnBoard): boolean {
+    const card = this.combinations[source.combinationIndex].toDto().cards[source.cardIndex];
+    if (!card) return false;
+    return this.previousTurnCombinations.some((combo) =>
+      combo.cards.some(
+        (c) =>
+          c.number === card.number &&
+          c.color === card.color &&
+          c.duplicata === card.duplicata,
+      ),
+    );
   }
 
   cancelTurnModifications(): void {

@@ -17,6 +17,7 @@ export interface ServerToClientEvents {
   "player.self.update": (selfPlayer: PlayerDto) => void;
   "player.drawnCard": (player: PlayerDto) => void;
   "player.played": (player: PlayerDto) => void;
+  "player.passed": (player: PlayerDto) => void;
   "player.canceledTurnModifications": (player: PlayerDto) => void;
   "player.movedCard": (
     player: PlayerDto,
@@ -30,6 +31,7 @@ export interface ServerToClientEvents {
 
 export interface ClientToServerEvents {
   "game.start": () => void;
+  "game.leave": () => void;
   "player.drawCard": () => void;
   "player.placeCardAlone": (cardIndex: number) => void;
   "player.placeCardInCombination": (
@@ -41,8 +43,10 @@ export interface ClientToServerEvents {
     source: CardPositionOnBoard,
     destination: CardPositionOnBoard,
   ) => void;
+  "player.returnCardToHand": (source: CardPositionOnBoard) => void;
   "player.cancelTurnModifications": () => void;
   "player.endTurn": () => void;
+  "player.pass": () => void;
 }
 
 export interface InterServerEvents {}

@@ -1,8 +1,21 @@
 {
+  "you": "You",
   "player_actions": {
-    "drawn_card": "{username} drew a card",
-    "canceled_turn_modifications": "{username} canceled their changes",
-    "played": "{username} played",
-    "won": "{username} won"
+    "game_started": "Game started · {name} goes first",
+    "drawn_card_1": "{name} drew a tile",
+    "drawn_card_2": "{name} picked up a tile",
+    "drawn_card_3": "{name} grabbed one from the pile",
+    "played_1": "{name} made a move",
+    "played_2": "{name} placed tiles on the board",
+    "played_few_left": "{name} made a move — getting close!",
+    "played_one_left": "{name} made a move — down to the last tile!",
+    "passed_1": "{name} passed",
+    "passed_2": "{name} had nothing to play",
+    "passed_3": "{name} skipped a turn",
+    "canceled_1": "{name} took it all back",
+    "canceled_2": "{name} hit undo",
+    "canceled_3": "{name} reconsidered",
+    "won": "{name} won the game!",
+    "player_left": "A player left the game"
   }
 }

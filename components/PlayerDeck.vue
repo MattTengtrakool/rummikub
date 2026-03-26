@@ -43,6 +43,9 @@ watch(
 );
 
 const handleChange = (e: ChangeEvent<OrderedCardDto>) => {
+  if (e.added) {
+    props.cardDraggingHandler.toHand();
+  }
   if (e.removed) {
     props.cardDraggingHandler.from(e.removed.element.initialIndex, null);
   }
@@ -77,16 +80,16 @@ const handleChange = (e: ChangeEvent<OrderedCardDto>) => {
 
     <div v-if="player" class="flex justify-start items-start flex-wrap gap-3">
       <Draggable
-        :disabled="!player.isPlaying"
         v-model="cards"
         :group="{
           name: 'combinations',
-          put: false,
+          pull: player.isPlaying,
+          put: player.isPlaying,
         }"
         tag="div"
         class="justify-start items-start flex-wrap gap-0.5 inline-flex"
         :item-key="(card: CardDto) => toKey(card)"
-        :sort="false"
+        :sort="true"
         @change="handleChange"
       >
         <template #item="{ element: card }: { element: OrderedCardDto }">

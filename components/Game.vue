@@ -49,6 +49,12 @@
           v-if="game.connectedUsernames.value"
           :usernames="game.connectedUsernames.value"
         />
+
+        <Button @click="handleLeaveGame">
+          <div class="flex gap-2">
+            <ArrowRightStartOnRectangleIcon class="size-4 text-body-text" />
+          </div>
+        </Button>
       </div>
     </nav>
 
@@ -118,13 +124,14 @@
         :highlighted-card-index="game.highlightedCard.value?.indexInHand"
         @cancel-turn-modifications="game.cancelTurnModifications()"
         @draw-card="game.drawCard()"
+        @pass="game.pass()"
         @end-turn="game.endTurn()"
       />
     </div>
   </main>
 </template>
 <script setup lang="ts">
-import { BookOpenIcon, ExclamationTriangleIcon, CheckIcon } from "@heroicons/vue/20/solid";
+import { BookOpenIcon, ExclamationTriangleIcon, CheckIcon, ArrowRightStartOnRectangleIcon } from "@heroicons/vue/20/solid";
 import { ClipboardDocumentIcon } from "@heroicons/vue/20/solid";
 import GameRulesModal from "@/components/GameRulesModal.vue";
 
@@ -134,6 +141,16 @@ const { t } = useI18n();
 
 const { username } = useUsername();
 const game = useGame(params.id, username.value);
+
+function handleLeaveGame() {
+  if (game.gameInfos.value?.state === "started") {
+    if (!confirm(t("pages.game.leave_game_confirm"))) {
+      return;
+    }
+  }
+  game.leaveGame();
+  navigateTo("/");
+}
 
 const codeCopied = ref(false);
 async function copyCode() {

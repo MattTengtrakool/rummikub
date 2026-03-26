@@ -35,17 +35,26 @@ export const useGame = (gameId: any, username: any) => {
 
   const actionsLogs = ref<Array<string>>([]);
   const logAction = (action: string) => actionsLogs.value.push(action);
-  const logs = computed(() => actionsLogs.value.slice(-3));
+  const logs = computed(() => actionsLogs.value.slice(-5));
+
+  const pick = <T>(...items: T[]): T =>
+    items[Math.floor(Math.random() * items.length)];
+
+  const displayName = (player: PlayerDto) =>
+    player.id === selfPlayer.value?.id ? t("toast.you") : player.username;
 
   const {
     startGame,
+    leaveGame,
     cancelTurnModifications,
     drawCard,
     endTurn,
+    pass,
     moveCardAlone,
     moveCardToCombination,
     placeCardAlone,
     placeCardInCombination,
+    returnCardToHand,
   } = setupGameSocket({
     gameId,
     username,
@@ -56,15 +65,32 @@ export const useGame = (gameId: any, username: any) => {
       gameBoard.value = newGameBoard;
     },
     onGameInfosUpdate(newGameInfos) {
+      if (
+        newGameInfos.state === "started" &&
+        gameInfos.value?.state === "created"
+      ) {
+        logAction(
+          t("toast.player_actions.game_started", {
+            name: newGameInfos.currentPlayerUsername,
+          }),
+        );
+      }
+
       if (newGameInfos.state === "ended") {
         modal.open(GameEndModal, {
           winnerUsername: newGameInfos.winnerUsername,
+          selfUsername: username,
+          endReason: newGameInfos.endReason,
         });
-        logAction(
-          t("toast.player_actions.won", {
-            username: newGameInfos.winnerUsername,
-          }),
-        );
+        if (newGameInfos.winnerUsername) {
+          const name =
+            newGameInfos.winnerUsername === username
+              ? t("toast.you")
+              : newGameInfos.winnerUsername;
+          logAction(t("toast.player_actions.won", { name }));
+        } else {
+          logAction(t("toast.player_actions.player_left"));
+        }
       }
       gameInfos.value = newGameInfos;
     },
@@ -74,18 +100,44 @@ export const useGame = (gameId: any, username: any) => {
     onOpponentsUpdate(newOpponents) {
       opponents.value = newOpponents;
     },
-    onPlayerCanceledTurnModifications(player) {
+    onPlayerPassed(player) {
+      const name = displayName(player);
       logAction(
-        t("toast.player_actions.canceled_turn_modifications", {
-          username: player.username,
-        }),
+        t(
+          pick(
+            "toast.player_actions.passed_1",
+            "toast.player_actions.passed_2",
+            "toast.player_actions.passed_3",
+          ),
+          { name },
+        ),
+      );
+    },
+    onPlayerCanceledTurnModifications(player) {
+      const name = displayName(player);
+      logAction(
+        t(
+          pick(
+            "toast.player_actions.canceled_1",
+            "toast.player_actions.canceled_2",
+            "toast.player_actions.canceled_3",
+          ),
+          { name },
+        ),
       );
     },
     onPlayerDrawnCard(player) {
+      const name = displayName(player);
+      const count = player.cards.length;
       logAction(
-        t("toast.player_actions.drawn_card", {
-          username: player.username,
-        }),
+        t(
+          pick(
+            "toast.player_actions.drawn_card_1",
+            "toast.player_actions.drawn_card_2",
+            "toast.player_actions.drawn_card_3",
+          ),
+          { name, count },
+        ),
       );
       if (player.id === selfPlayer.value?.id) {
         highlightedCard.value = {
@@ -95,11 +147,22 @@ export const useGame = (gameId: any, username: any) => {
     },
     onPlayerPlayed(player) {
       if (gameInfos.value?.state === "ended") return;
-      logAction(
-        t("toast.player_actions.played", {
-          username: player.username,
-        }),
-      );
+      const name = displayName(player);
+      const count = player.cards.length;
+
+      let key: string;
+      if (count === 1) {
+        key = "toast.player_actions.played_one_left";
+      } else if (count <= 3) {
+        key = "toast.player_actions.played_few_left";
+      } else {
+        key = pick(
+          "toast.player_actions.played_1",
+          "toast.player_actions.played_2",
+        );
+      }
+
+      logAction(t(key, { name, count }));
     },
     onPlayerMovedCard(player, cardPosition) {
       if (player.id === selfPlayer.value?.id) {
@@ -111,6 +174,7 @@ export const useGame = (gameId: any, username: any) => {
     },
     onConnect() {
       connected.value = true;
+      disconnected.value = false;
     },
     onDisconnect() {
       connected.value = false;
@@ -123,6 +187,7 @@ export const useGame = (gameId: any, username: any) => {
     placeCardInCombination,
     moveCardAlone,
     moveCardToCombination,
+    returnCardToHand,
   });
 
   return {
@@ -136,9 +201,11 @@ export const useGame = (gameId: any, username: any) => {
     highlightedCard,
     logs,
     startGame,
+    leaveGame,
     cancelTurnModifications,
     drawCard,
     endTurn,
+    pass,
     cardDraggingHandler,
   };
 };

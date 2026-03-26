@@ -17,14 +17,19 @@
         "waiting_for_host": "Waiting for the host to start the game",
         "unable_to_connect": {
             "title": "Unable to connect",
-            "explanation": "The game has already started",
+            "explanation": "The connection was lost or the game has already started",
             "back_home": "Back to home"
         },
         "ended": {
             "title": "Game over",
             "winner": "{username} won!",
+            "you_won": "You won!",
+            "player_left": "A player left the game",
+            "stalemate_subtitle": "Draw pile empty",
+            "stalemate_explanation": "No one could play. Lowest remaining tile value wins.",
             "back_home": "Back to home"
         },
+        "leave_game_confirm": "Are you sure you want to leave? This will end the game for everyone.",
         "connected_usernames": "{n} person connected | {n} people connected",
         "your_turn": "Your turn",
         "turn_of": "{username}'s turn"

@@ -14,6 +14,7 @@ const emit = defineEmits<{
   orderByColor: [];
   orderByNumber: [];
   drawCard: [];
+  pass: [];
   cancelTurnModifications: [];
   endTurn: [];
 }>();
@@ -44,6 +45,10 @@ const canChangeCardOrder = computed(() => props.game.state === "started");
       {{ t("draw") }}
     </Button>
 
+    <Button type="primary" v-if="player.canPass" @click="emit('pass')">
+      {{ t("pass") }}
+    </Button>
+
     <Button
       type="primary"
       v-if="player.canCancelTurnModifications"
@@ -62,6 +67,7 @@ en:
   by_color: By color
   by_number: By number
   draw: Draw
+  pass: Pass
   cancel: Cancel
   end_turn: End turn
 </i18n>

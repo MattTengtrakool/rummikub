@@ -1,8 +1,9 @@
 <template>
-  <div class="pointer-events-none p-2 flex flex-col-reverse gap-0.5 text-xs">
+  <div class="pointer-events-none p-2 flex flex-col-reverse gap-1 text-xs font-medium">
     <span
       v-for="(action, index) in actions.toReversed()"
-      :style="`opacity: ${1 / (index + 2)}`"
+      :key="action + index"
+      :style="`opacity: ${Math.max(0.15, 1 - index * 0.2)}`"
     >
       {{ action }}
     </span>

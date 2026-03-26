@@ -221,6 +221,111 @@ describe("Game", () => {
     });
   });
 
+  describe("winner", () => {
+    test("throw if game has not ended", () => {
+      const game = new Game({ id: "game", state: "created" });
+
+      expect(() => game.winner()).toThrow("Game has not ended");
+    });
+
+    test("return undefined when no player has won", () => {
+      const game = new Game({ id: "game", state: "created" });
+      const player = game.addPlayer();
+      game.addPlayer();
+      game.start();
+
+      game.removePlayer(player.id);
+
+      expect(game.winner()).toBeUndefined();
+    });
+  });
+
+  describe("playerPassed", () => {
+    test("end game as stalemate when all players pass consecutively", () => {
+      const game = new Game({ id: "game" });
+      game.addPlayer();
+      game.addPlayer();
+      game.start();
+
+      game.playerPassed();
+      expect(game.isStarted()).toBe(true);
+
+      game.playerPassed();
+      expect(game.isEnded()).toBe(true);
+    });
+
+    test("pick lowest hand-value player as winner on stalemate", () => {
+      const game = new Game({ id: "game" });
+      const playerA = game.addPlayer();
+      const playerB = game.addPlayer();
+      game.start();
+
+      game.playerPassed();
+      game.playerPassed();
+
+      expect(game.isEnded()).toBe(true);
+      const winner = game.winner();
+      expect(winner).toBeDefined();
+      expect(winner!.handValue()).toBeLessThanOrEqual(playerA.handValue());
+      expect(winner!.handValue()).toBeLessThanOrEqual(playerB.handValue());
+    });
+
+    test("reset consecutive passes when a player draws", () => {
+      const game = new Game({ id: "game" });
+      game.addPlayer();
+      game.addPlayer();
+      game.start();
+
+      game.playerPassed();
+      expect(game.isStarted()).toBe(true);
+
+      game.currentPlayer().drawCard();
+      expect(game.isStarted()).toBe(true);
+
+      game.playerPassed();
+      expect(game.isStarted()).toBe(true);
+    });
+  });
+
+  describe("endReason", () => {
+    test("forfeit end reason when player leaves", () => {
+      const game = new Game({ id: "game", state: "created" });
+      const player = game.addPlayer();
+      game.addPlayer();
+      game.start();
+
+      game.removePlayer(player.id);
+
+      expect(game.toInfosDto().endReason).toBe("forfeit");
+    });
+
+    test("stalemate end reason when all pass", () => {
+      const game = new Game({ id: "game" });
+      game.addPlayer();
+      game.addPlayer();
+      game.start();
+
+      game.playerPassed();
+      game.playerPassed();
+
+      expect(game.toInfosDto().endReason).toBe("stalemate");
+    });
+  });
+
+  describe("toInfosDto", () => {
+    test("return undefined winnerUsername when game ends by forfeit", () => {
+      const game = new Game({ id: "game", state: "created" });
+      const player = game.addPlayer();
+      game.addPlayer();
+      game.start();
+
+      game.removePlayer(player.id);
+
+      expect(game.toInfosDto().winnerUsername).toBeUndefined();
+      expect(game.toInfosDto().state).toBe("ended");
+    });
+  });
+
   describe("toDto", () => {
     test("return corresponding dto", () => {
       const game = new Game({ id: "game" });
@@ -280,6 +385,6 @@ test("A game can be played", () => {
   firstPlayer.endTurn();
 
   expect(firstPlayer.hasWon()).toBe(true);
-  expect(game.winner().id).toBe(firstPlayer.id);
+  expect(game.winner()!.id).toBe(firstPlayer.id);
   expect(game.isEnded()).toBeTruthy();
 });

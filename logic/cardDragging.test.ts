@@ -13,6 +13,7 @@ const baseObj = {
     source: CardPositionOnBoard,
     destination: CardPositionOnBoard
   ) {},
+  returnCardToHand(source: CardPositionOnBoard) {},
 };
 
 afterEach(() => {
@@ -73,5 +74,18 @@ describe("cardDragging", () => {
         combinationIndex: 1,
       }
     );
+  });
+
+  test("call returnCardToHand when source card+combination and destination is hand", () => {
+    const spy = vi.spyOn(baseObj, "returnCardToHand");
+    const cardDraggingHandler = makeCardDraggingHandler(baseObj);
+
+    cardDraggingHandler.toHand();
+    cardDraggingHandler.from(2, 0);
+
+    expect(spy).toHaveBeenCalledWith({
+      cardIndex: 2,
+      combinationIndex: 0,
+    });
   });
 });

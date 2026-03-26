@@ -20,6 +20,7 @@ export interface IGameManager {
   isConnected(connection: UserConnection): boolean;
   connect(connection: UserConnection): GameAndPlayer;
   disconnect(connection: UserConnection): void;
+  leave(connection: UserConnection): IGame;
   connectedCount(gameId: GameId): number;
   usernames(gameId: GameId): Record<string, boolean>;
 }
@@ -75,7 +76,25 @@ export class GameManager implements IGameManager {
     return { game, player };
   }
 
+  leave(connection: UserConnection): IGame {
+    const game = this.gameRepository.findById(connection.gameId);
+    const player = game.findPlayerByUsername(connection.username);
+    game.removePlayer(player.id);
+
+    this.deleteConnection(connection);
+
+    if (this.connectedCount(connection.gameId) === 0) {
+      this.gameRepository.destroy(connection.gameId);
+    }
+
+    return game;
+  }
+
   disconnect(connection: UserConnection) {
+    if (!this.isConnected(connection)) {
+      return;
+    }
+
     const game = this.gameRepository.findById(connection.gameId);
     const player = game.findPlayerByUsername(connection.username);
     if (!game.isStarted()) {

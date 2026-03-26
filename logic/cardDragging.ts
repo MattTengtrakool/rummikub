@@ -6,11 +6,14 @@ type CardPosition = {
   card: Position;
 };
 
+const HAND_SENTINEL = -1;
+
 export const makeCardDraggingHandler = ({
   placeCardInCombination,
   placeCardAlone,
   moveCardAlone,
   moveCardToCombination,
+  returnCardToHand,
 }: {
   placeCardAlone(cardIndex: number): void;
   placeCardInCombination(
@@ -22,6 +25,7 @@ export const makeCardDraggingHandler = ({
     source: CardPositionOnBoard,
     destination: CardPositionOnBoard
   ): void;
+  returnCardToHand(source: CardPositionOnBoard): void;
 }) => {
   const source: CardPosition = {
     card: null,
@@ -45,6 +49,11 @@ export const makeCardDraggingHandler = ({
     destination.combination = combination;
   };
 
+  const toHand = () => {
+    destination.card = HAND_SENTINEL;
+    destination.combination = HAND_SENTINEL;
+  };
+
   const end = () => {
     if (
       source.card !== null &&
@@ -64,6 +73,18 @@ export const makeCardDraggingHandler = ({
       return placeCardInCombination(source.card, {
         cardIndex: destination.card,
         combinationIndex: destination.combination,
+      });
+    }
+
+    if (
+      source.card !== null &&
+      source.combination !== null &&
+      destination.card === HAND_SENTINEL &&
+      destination.combination === HAND_SENTINEL
+    ) {
+      return returnCardToHand({
+        cardIndex: source.card,
+        combinationIndex: source.combination,
       });
     }
 
@@ -101,6 +122,7 @@ export const makeCardDraggingHandler = ({
   return {
     from,
     to,
+    toHand,
   };
 };
 export type CardDraggingHandler = ReturnType<typeof makeCardDraggingHandler>;

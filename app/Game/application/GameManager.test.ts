@@ -175,6 +175,122 @@ describe("GameManager", () => {
     });
   });
 
+  describe("leave", () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    test("remove player from game and connections", () => {
+      const gameManager = new GameManager({
+        gameRepository: new InMemoryGameRepository(),
+      });
+      gameManager.connect({
+        gameId: "1",
+        username: "Alice",
+      });
+      gameManager.connect({
+        gameId: "1",
+        username: "Bob",
+      });
+
+      gameManager.leave({
+        gameId: "1",
+        username: "Alice",
+      });
+
+      expect(
+        gameManager.isConnected({
+          gameId: "1",
+          username: "Alice",
+        }),
+      ).toBeFalsy();
+    });
+
+    test("return the game object", () => {
+      const gameManager = new GameManager({
+        gameRepository: new InMemoryGameRepository(),
+      });
+      gameManager.connect({
+        gameId: "1",
+        username: "Alice",
+      });
+
+      const game = gameManager.leave({
+        gameId: "1",
+        username: "Alice",
+      });
+
+      expect(game).toBeInstanceOf(Game);
+    });
+
+    test("destroy game if last player leaves", () => {
+      const gameRepository = new InMemoryGameRepository();
+      const spy = vi.spyOn(gameRepository, "destroy");
+      const gameManager = new GameManager({
+        gameRepository,
+      });
+      gameManager.connect({
+        gameId: "1",
+        username: "Alice",
+      });
+
+      gameManager.leave({
+        gameId: "1",
+        username: "Alice",
+      });
+
+      expect(spy).toHaveBeenCalledOnce();
+    });
+
+    test("end game if player leaves during started game", () => {
+      const gameManager = new GameManager({
+        gameRepository: new InMemoryGameRepository(),
+      });
+      const { game } = gameManager.connect({
+        gameId: "1",
+        username: "Alice",
+      });
+      gameManager.connect({
+        gameId: "1",
+        username: "Bob",
+      });
+      game.start();
+
+      gameManager.leave({
+        gameId: "1",
+        username: "Alice",
+      });
+
+      expect(game.isEnded()).toBeTruthy();
+    });
+
+    test("disconnect is safe to call after leave", () => {
+      const gameManager = new GameManager({
+        gameRepository: new InMemoryGameRepository(),
+      });
+      gameManager.connect({
+        gameId: "1",
+        username: "Alice",
+      });
+      gameManager.connect({
+        gameId: "1",
+        username: "Bob",
+      });
+
+      gameManager.leave({
+        gameId: "1",
+        username: "Alice",
+      });
+
+      expect(() =>
+        gameManager.disconnect({
+          gameId: "1",
+          username: "Alice",
+        }),
+      ).not.toThrow();
+    });
+  });
+
   describe("usernames", () => {
     test("return username of all players in game", () => {
       // Arrange

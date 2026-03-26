@@ -9,6 +9,7 @@ import type {
   IGameBoard,
 } from "@/app/GameBoard/application/GameBoard";
 import type { PlayerDto, PlayerId } from "@/app/Player/domain/dtos/player";
+import { handValue as calculateHandValue } from "@/app/Player/domain/gamerules/handValue";
 import { isWinnerPlayer } from "@/app/Player/domain/gamerules/hasWon";
 import { generate } from "random-words";
 
@@ -29,9 +30,13 @@ export interface IPlayer {
     source: CardPositionOnBoard,
     destination: CardPositionOnBoard,
   ): void;
+  returnCardToHand(source: CardPositionOnBoard): void;
+  canReturnCardToHand(source: CardPositionOnBoard): boolean;
   cancelTurnModifications(): void;
   endTurn(): void;
+  pass(): void;
   canDrawCard(): boolean;
+  canPass(): boolean;
   canPlaceCardAlone(): boolean;
   canPlaceCardInCombination(): boolean;
   canMoveCardAlone(): boolean;
@@ -41,6 +46,7 @@ export interface IPlayer {
   canEndTurn(): boolean;
   isPlaying(): boolean;
   hasWon(): boolean;
+  handValue(): number;
   toDto(): PlayerDto;
 }
 
@@ -137,6 +143,19 @@ export class Player implements IPlayer {
     this.gameBoard.moveCardToCombination(source, destination);
   }
 
+  returnCardToHand(source: CardPositionOnBoard): void {
+    const card = this.gameBoard.removeCardFromBoard(source);
+    this.cards = Object.freeze([...this.cards, card]);
+  }
+
+  canReturnCardToHand(source: CardPositionOnBoard): boolean {
+    return (
+      this._isPlaying &&
+      !this.hasDrawnThisTurn &&
+      !this.gameBoard.wasCardOnBoardBeforeTurn(source)
+    );
+  }
+
   cancelTurnModifications(): void {
     this.cards = Object.freeze([...this.previousTurnCards]);
 
@@ -179,6 +198,8 @@ export class Player implements IPlayer {
     }
 
     if (this.game) {
+      this.game.resetConsecutivePasses();
+
       if (this.hasWon()) {
         this.game.end();
       } else {
@@ -189,8 +210,28 @@ export class Player implements IPlayer {
     this._isPlaying = false;
   }
 
+  pass(): void {
+    if (this.game) {
+      this.game.playerPassed();
+    }
+
+    this._isPlaying = false;
+  }
+
   canDrawCard(): boolean {
-    return this._isPlaying && !this.gameBoard.hasModifications();
+    return (
+      this._isPlaying &&
+      !this.gameBoard.hasModifications() &&
+      !this.drawStack.isEmpty()
+    );
+  }
+
+  canPass(): boolean {
+    return (
+      this._isPlaying &&
+      this.drawStack.isEmpty() &&
+      !this.gameBoard.hasModifications()
+    );
   }
 
   canPlaceCardAlone(): boolean {
@@ -277,6 +318,10 @@ export class Player implements IPlayer {
     });
   }
 
+  handValue(): number {
+    return calculateHandValue(this.cards);
+  }
+
   canStartGame(): boolean {
     if (!this.game) {
       return false;
@@ -298,6 +343,7 @@ export class Player implements IPlayer {
       hasWon: this.hasWon(),
       canStartGame: this.canStartGame(),
       canDrawCard: this.canDrawCard(),
+      canPass: this.canPass(),
       canPlaceCardAlone: this.canPlaceCardAlone(),
       canPlaceCardInCombination: this.canPlaceCardInCombination(),
       canMoveCardAlone: this.canMoveCardAlone(),
@@ -307,6 +353,7 @@ export class Player implements IPlayer {
       canInteractWithCombination: this.gameBoard
         .toDto()
         .combinations.map((_, index) => this.canInteractWithCombination(index)),
+      handValue: this.handValue(),
     };
   }
 }

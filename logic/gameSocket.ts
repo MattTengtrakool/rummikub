@@ -15,6 +15,7 @@ export const setupGameSocket = ({
   onSelfPlayerUpdate,
   onPlayerDrawnCard,
   onPlayerPlayed,
+  onPlayerPassed,
   onPlayerCanceledTurnModifications,
   onPlayerMovedCard,
   onGameBoardUpdate,
@@ -29,6 +30,7 @@ export const setupGameSocket = ({
   onSelfPlayerUpdate: (player: PlayerDto) => void;
   onPlayerDrawnCard: (player: PlayerDto) => void;
   onPlayerPlayed: (player: PlayerDto) => void;
+  onPlayerPassed: (player: PlayerDto) => void;
   onPlayerCanceledTurnModifications: (player: PlayerDto) => void;
   onPlayerMovedCard: (
     player: PlayerDto,
@@ -70,6 +72,10 @@ export const setupGameSocket = ({
     onPlayerPlayed(player);
   });
 
+  socket.on("player.passed", (player) => {
+    onPlayerPassed(player);
+  });
+
   socket.on("player.canceledTurnModifications", (player) => {
     onPlayerCanceledTurnModifications(player);
   });
@@ -104,6 +110,11 @@ export const setupGameSocket = ({
     socket.emit("game.start");
   };
 
+  const leaveGame = () => {
+    socket.emit("game.leave");
+    socket.disconnect();
+  };
+
   const cancelTurnModifications = () => {
     socket.emit("player.cancelTurnModifications");
   };
@@ -114,6 +125,10 @@ export const setupGameSocket = ({
 
   const endTurn = () => {
     socket.emit("player.endTurn");
+  };
+
+  const pass = () => {
+    socket.emit("player.pass");
   };
 
   const moveCardAlone = (source: CardPositionOnBoard) => {
@@ -138,15 +153,22 @@ export const setupGameSocket = ({
     socket.emit("player.placeCardInCombination", cardIndex, destination);
   };
 
+  const returnCardToHand = (source: CardPositionOnBoard) => {
+    socket.emit("player.returnCardToHand", source);
+  };
+
   return {
     socket,
     startGame,
+    leaveGame,
     cancelTurnModifications,
     drawCard,
     endTurn,
+    pass,
     moveCardAlone,
     moveCardToCombination,
     placeCardAlone,
     placeCardInCombination,
+    returnCardToHand,
   };
 };
