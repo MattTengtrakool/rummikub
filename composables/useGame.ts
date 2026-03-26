@@ -241,13 +241,14 @@ export const useGame = (gameId: any, username: any) => {
         const drawnCard = player.cards[player.cards.length - 1];
         if (drawnCard) {
           drawAnimation.value = { color: drawnCard.color, number: drawnCard.number };
-          setTimeout(() => { drawAnimation.value = null; }, 500);
+          setTimeout(() => { drawAnimation.value = null; }, 700);
         }
+        highlightedCard.value = {
+          indexInHand: player.cards.length - 1,
+        };
         setTimeout(() => {
-          highlightedCard.value = {
-            indexInHand: player.cards.length - 1,
-          };
-        }, 350);
+          highlightedCard.value = undefined;
+        }, 700);
       }
     },
     onPlayerPlayed(player) {

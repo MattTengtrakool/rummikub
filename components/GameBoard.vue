@@ -211,27 +211,27 @@ const contentStyle = computed(() => zoom.transformStyle.value);
       :color-index="entry.index"
     />
 
-    <div class="absolute bottom-3 right-3 flex gap-1.5 z-50 pointer-events-auto">
+    <div class="absolute bottom-2 right-2 flex gap-1 z-50 pointer-events-auto">
       <button
         @click.stop="zoom.zoomIn(boardRef)"
-        class="size-9 rounded-lg bg-card-bg border border-card-border shadow-md flex items-center justify-center cursor-pointer hover:bg-separator active:scale-95 transition-all"
+        class="size-6 rounded-md bg-card-bg border border-card-border shadow-sm flex items-center justify-center cursor-pointer hover:bg-separator active:scale-95 transition-all"
         title="Zoom in"
       >
-        <MagnifyingGlassPlusIcon class="size-5" />
+        <MagnifyingGlassPlusIcon class="size-3.5" />
       </button>
       <button
         @click.stop="zoom.zoomOut(boardRef)"
-        class="size-9 rounded-lg bg-card-bg border border-card-border shadow-md flex items-center justify-center cursor-pointer hover:bg-separator active:scale-95 transition-all"
+        class="size-6 rounded-md bg-card-bg border border-card-border shadow-sm flex items-center justify-center cursor-pointer hover:bg-separator active:scale-95 transition-all"
         title="Zoom out"
       >
-        <MagnifyingGlassMinusIcon class="size-5" />
+        <MagnifyingGlassMinusIcon class="size-3.5" />
       </button>
       <button
         @click.stop="handleFit"
-        class="size-9 rounded-lg bg-card-bg border border-card-border shadow-md flex items-center justify-center cursor-pointer hover:bg-separator active:scale-95 transition-all"
+        class="size-6 rounded-md bg-card-bg border border-card-border shadow-sm flex items-center justify-center cursor-pointer hover:bg-separator active:scale-95 transition-all"
         title="Fit to screen"
       >
-        <ArrowsPointingOutIcon class="size-5" />
+        <ArrowsPointingOutIcon class="size-3.5" />
       </button>
     </div>
   </div>
