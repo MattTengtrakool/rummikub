@@ -32,13 +32,50 @@ const cards = ref<Array<OrderedCardDto>>(
   orderedCards.toOrdered([...props.player.cards]),
 );
 
+const reconcileCards = (serverCards: ReadonlyArray<CardDto>) => {
+  const pool = serverCards.map((card, index) => ({
+    ...card,
+    initialIndex: index,
+    matched: false,
+  }));
+
+  const kept: OrderedCardDto[] = [];
+  for (const local of cards.value) {
+    const match = pool.find(
+      (sc) =>
+        !sc.matched &&
+        sc.color === local.color &&
+        sc.number === local.number &&
+        sc.duplicata === local.duplicata,
+    );
+    if (match) {
+      match.matched = true;
+      kept.push(
+        Object.freeze({ color: match.color, number: match.number, duplicata: match.duplicata, initialIndex: match.initialIndex }),
+      );
+    }
+  }
+
+  const added = pool
+    .filter((sc) => !sc.matched)
+    .map((sc) =>
+      Object.freeze({ color: sc.color, number: sc.number, duplicata: sc.duplicata, initialIndex: sc.initialIndex }),
+    );
+
+  cards.value = [...kept, ...added];
+};
+
 watch(
-  () => ({
-    player: props.player,
-    cardOrder: orderedCards.isOrderedByColor.value,
-  }),
-  ({ player }) => {
-    cards.value = orderedCards.toOrdered([...player.cards]);
+  () => props.player,
+  (player) => {
+    reconcileCards(player.cards);
+  },
+);
+
+watch(
+  () => orderedCards.isOrderedByColor.value,
+  () => {
+    cards.value = orderedCards.toOrdered([...props.player.cards]);
   },
 );
 

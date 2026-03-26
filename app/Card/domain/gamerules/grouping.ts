@@ -60,3 +60,4 @@ export const byNumber = (cards: CardListDto): Array<OrderedCardDto> =>
   groupByNumber(markInitialIndex(cards))
     .map((group) => group.sort(sortByColor))
     .flat();
+

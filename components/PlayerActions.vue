@@ -25,21 +25,21 @@ const canChangeCardOrder = computed(() => props.game.state === "started");
 </script>
 <template>
   <div v-if="player" class="flex flex-wrap gap-3">
-    <Button
-      type="primary"
-      v-if="canChangeCardOrder && isOrderedByNumber"
-      @click="emit('orderByColor')"
-    >
-      {{ t("by_color") }}
-    </Button>
-
-    <Button
-      type="primary"
-      v-if="canChangeCardOrder && isOrderedByColor"
-      @click="emit('orderByNumber')"
-    >
-      {{ t("by_number") }}
-    </Button>
+    <div v-if="canChangeCardOrder" class="flex items-center gap-1.5">
+      <span class="text-xs text-body-text-disabled">{{ t("sort") }}:</span>
+      <Button
+        :type="isOrderedByColor ? 'filled' : 'primary'"
+        @click="emit('orderByColor')"
+      >
+        {{ t("by_color") }}
+      </Button>
+      <Button
+        :type="isOrderedByNumber ? 'filled' : 'primary'"
+        @click="emit('orderByNumber')"
+      >
+        {{ t("by_number") }}
+      </Button>
+    </div>
 
     <Button type="primary" v-if="player.canDrawCard" @click="emit('drawCard')">
       {{ t("draw") }}
@@ -64,8 +64,9 @@ const canChangeCardOrder = computed(() => props.game.state === "started");
 </template>
 <i18n lang="yaml">
 en:
-  by_color: By color
-  by_number: By number
+  sort: Sort
+  by_color: Color
+  by_number: Number
   draw: Draw
   pass: Pass
   cancel: Cancel
