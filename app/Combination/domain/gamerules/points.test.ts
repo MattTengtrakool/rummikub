@@ -28,10 +28,36 @@ describe("cardCombinationPoints", () => {
     ).toBe(6);
   });
 
-  test("should not count joker in sum", () => {
+  test("should count joker as the value it represents in a serie", () => {
     expect(
       cardCombinationPoints({
         type: "serie",
+        cards: [
+          { color: "red", number: 13, duplicata: 1 },
+          { color: "black", number: 13, duplicata: 1 },
+          { color: "black", number: CARD_JOKER_NUMBER, duplicata: 1 },
+        ],
+      })
+    ).toBe(39);
+  });
+
+  test("should count joker as the value it represents in a suite", () => {
+    expect(
+      cardCombinationPoints({
+        type: "suite",
+        cards: [
+          { color: "black", number: 1, duplicata: 1 },
+          { color: "black", number: CARD_JOKER_NUMBER, duplicata: 1 },
+          { color: "black", number: 3, duplicata: 1 },
+        ],
+      })
+    ).toBe(6);
+  });
+
+  test("should not count joker in invalid combination", () => {
+    expect(
+      cardCombinationPoints({
+        type: "invalid",
         cards: [
           { color: "black", number: 1, duplicata: 1 },
           { color: "black", number: CARD_JOKER_NUMBER, duplicata: 1 },

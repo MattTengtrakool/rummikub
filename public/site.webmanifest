@@ -1,6 +1,6 @@
 {
-  "name": "Chat",
-  "short_name": "Chat",
+  "name": "Rummikub",
+  "short_name": "Rummikub",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",

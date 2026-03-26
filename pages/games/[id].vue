@@ -5,7 +5,7 @@
   >
     <div>
       <label class="flex flex-col mb-8">
-        <span class="mb-1">Choisissez un pseudo</span>
+        <span class="mb-1">Choose a username</span>
         <CInput v-model="tempUsername" />
       </label>
 
@@ -15,7 +15,7 @@
         :disabled="isTempUsername"
         @click="saveUsername()"
       >
-        Rejoindre la partie
+        Join the game
       </Button>
     </div>
   </div>

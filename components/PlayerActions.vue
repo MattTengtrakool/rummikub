@@ -58,10 +58,10 @@ const canChangeCardOrder = computed(() => props.game.state === "started");
   </div>
 </template>
 <i18n lang="yaml">
-fr:
-  by_color: Par couleur
-  by_number: Par numéro
-  draw: Piocher
-  cancel: Annuler
-  end_turn: Terminer le tour
+en:
+  by_color: By color
+  by_number: By number
+  draw: Draw
+  cancel: Cancel
+  end_turn: End turn
 </i18n>

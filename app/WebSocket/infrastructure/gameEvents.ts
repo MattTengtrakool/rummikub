@@ -3,6 +3,7 @@ import { type IGameManager } from "@/app/Game/application/GameManager";
 import type { IPlayer } from "@/app/Player/application/Player";
 import type { PlayerDto } from "@/app/Player/domain/dtos/player";
 import type {
+  OpponentDto,
   WebSocketNamespace,
   WebSocketServerSocket,
 } from "@/app/WebSocket/infrastructure/types";
@@ -27,6 +28,16 @@ export const registerGameEvents = ({
     gameDto.players.forEach((player) => {
       console.log(`emited to ${player.username}`);
       io.to(playerRoom(game, player)).emit("player.self.update", player);
+
+      const opponents: OpponentDto[] = gameDto.players
+        .filter((p) => p.id !== player.id)
+        .map((p) => ({
+          username: p.username,
+          cardCount: p.cards.length,
+          isPlaying: p.isPlaying,
+          hasStarted: p.hasStarted,
+        }));
+      io.to(playerRoom(game, player)).emit("opponents.update", opponents);
     });
   };
 

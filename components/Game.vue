@@ -63,6 +63,11 @@
       </Button>
     </div>
 
+    <OpponentStrip
+      v-if="game.gameInfos.value.state === 'started' && game.opponents.value.length > 0"
+      :opponents="game.opponents.value"
+    />
+
     <GameBoard
       v-if="game.gameInfos.value.state!=='created'"
       :highlighted-card="game.highlightedCard.value?.positionOnBoard"

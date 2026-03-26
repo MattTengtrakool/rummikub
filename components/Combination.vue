@@ -76,6 +76,6 @@ const handleChange = (e: ChangeEvent<CardDto>) => {
 </template>
 
 <i18n lang="yaml">
-fr:
-  invalid: "Invalide"
+en:
+  invalid: "Invalid"
 </i18n>

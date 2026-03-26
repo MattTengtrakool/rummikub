@@ -1,0 +1,8 @@
+{
+  "player_actions": {
+    "drawn_card": "{username} drew a card",
+    "canceled_turn_modifications": "{username} canceled their changes",
+    "played": "{username} played",
+    "won": "{username} won"
+  }
+}

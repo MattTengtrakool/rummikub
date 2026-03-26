@@ -1,0 +1,32 @@
+{
+    "home": {
+        "username": "Username",
+        "create_game": "Create a game",
+        "join_game": "Join game",
+        "code_join_game": "Game code",
+        "or": "Or",
+        "see_rules": "See the game rules"
+    },
+    "game": {
+        "start": "Start the game",
+        "waiting_for_players": "Waiting for another player to start",
+        "invite_friends": "Code to join the game: {code}",
+        "waiting_for_host": "Waiting for the host to start the game",
+        "unable_to_connect": {
+            "title": "Unable to connect",
+            "explanation": "The game has already started",
+            "back_home": "Back to home"
+        },
+        "ended": {
+            "title": "Game over",
+            "winner": "{username} won!",
+            "back_home": "Back to home"
+        },
+        "connected_usernames": "{n} person connected | {n} people connected",
+        "your_turn": "Your turn",
+        "turn_of": "{username}'s turn"
+    },
+    "rules": {
+        "back_home": "Back to home"
+    }
+}

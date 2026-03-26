@@ -55,13 +55,13 @@ export default defineNuxtConfig({
   i18n: {
     locales: [
       {
-        code: "fr",
-        file: "fr.ts"
+        code: "en",
+        file: "en.ts"
       }
     ],
     lazy: true,
     langDir: "lang",
-    defaultLocale: "fr",
+    defaultLocale: "en",
     strategy: "no_prefix",
     detectBrowserLanguage: {
       useCookie: true,

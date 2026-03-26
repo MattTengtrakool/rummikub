@@ -2,6 +2,7 @@ import type { GameInfosDto } from "@/app/Game/application/Game";
 import type { CardPositionOnBoard } from "@/app/GameBoard/application/GameBoard";
 import type { GameBoardDto } from "@/app/GameBoard/domain/dtos/gameBoard";
 import type { PlayerDto } from "@/app/Player/domain/dtos/player";
+import type { OpponentDto } from "@/app/WebSocket/infrastructure/types";
 import GameEndModal from "@/components/GameEndModal.vue";
 import { makeCardDraggingHandler } from "@/logic/cardDragging";
 import { setupGameSocket } from "@/logic/gameSocket";
@@ -29,6 +30,7 @@ export const useGame = (gameId: any, username: any) => {
   const selfPlayer = ref<PlayerDto>();
   const gameBoard = ref<GameBoardDto>();
   const connectedUsernames = ref<Record<string, boolean>>();
+  const opponents = ref<OpponentDto[]>([]);
   const highlightedCard = ref<HighlightedCard>();
 
   const actionsLogs = ref<Array<string>>([]);
@@ -68,6 +70,9 @@ export const useGame = (gameId: any, username: any) => {
     },
     onConnectedUsernamesUpdate(newConnectedUsernames) {
       connectedUsernames.value = newConnectedUsernames;
+    },
+    onOpponentsUpdate(newOpponents) {
+      opponents.value = newOpponents;
     },
     onPlayerCanceledTurnModifications(player) {
       logAction(
@@ -127,6 +132,7 @@ export const useGame = (gameId: any, username: any) => {
     selfPlayer,
     gameBoard,
     connectedUsernames,
+    opponents,
     highlightedCard,
     logs,
     startGame,

@@ -1,0 +1,53 @@
+{
+    "title": "Rummikub Rules",
+    "see_details": "See the \"{0}\" rule in detail",
+    "purpose": {
+        "title": "Goal of the game",
+        "content": "The goal of the game is to place all your tiles on the table by creating combinations."
+    },
+    "players_count": {
+        "title": "Number of players",
+        "content": "Between 2 and 4 players."
+    },
+    "card": {
+        "title": "Tile",
+        "content": "A tile has a color (red, blue, yellow, black) and is numbered from 1 to 13."
+    },
+    "joker": {
+        "title": "Joker",
+        "content": "There are two jokers, they can replace any tile.\n\nTheir color does not matter."
+    },
+    "suite": {
+        "title": "Combination - Run",
+        "content": "A run is a combination of at least 3 tiles of the same color in consecutive order."
+    },
+    "serie": {
+        "title": "Combination - Group",
+        "content": "A group is a combination of at least 3 tiles of the same number but different colors."
+    },
+    "first_turn": {
+        "title": "First turn",
+        "content": "On your first turn, you must play at least 30 points (sum of the numbers on the tiles).\nYou cannot interact with tiles already on the table.\n\nIf you cannot play 30 points, you draw a tile and end your turn.",
+        "examples": {
+            "title": "Some examples:",
+            "invalid": "If you only play this combination, you only have 27 out of 30 points.",
+            "valid": "Here, you have 33 points, so you can play."
+        },
+        "reminder": "You have played {playedPoints} point(s) out of the {neededPoints} needed to play."
+    },
+    "turn": {
+        "title": "How a turn works",
+        "content": "You can place combinations on the table and modify existing combinations.\n\nIf you don't place anything, you draw a tile and end your turn."
+    },
+    "combination_modification": {
+        "title": "Modifying a combination",
+        "content": "You can add/remove tiles from an existing combination, as long as it remains valid.\n\nThis allows you to create new combinations and place your tiles.",
+        "examples": {
+            "title": "Some examples:",
+            "add": "You can add a black 11, or a joker",
+            "remove": "You can remove the 10 or the 13, leaving 3 cards",
+            "replace": "You can replace the joker with a green 4, and reuse it elsewhere",
+            "split": "You can split to make 5-6 and 7-8-9, then add a 7 after the 6"
+        }
+    }
+}

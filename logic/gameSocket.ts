@@ -4,6 +4,7 @@ import type { GameBoardDto } from "@/app/GameBoard/domain/dtos/gameBoard";
 import type { PlayerDto } from "@/app/Player/domain/dtos/player";
 import type {
   ClientToServerEvents,
+  OpponentDto,
   ServerToClientEvents,
 } from "@/app/WebSocket/infrastructure/types";
 import { io, Socket } from "socket.io-client";
@@ -19,6 +20,7 @@ export const setupGameSocket = ({
   onGameBoardUpdate,
   onGameInfosUpdate,
   onConnectedUsernamesUpdate,
+  onOpponentsUpdate,
   onConnect,
   onDisconnect,
 }: {
@@ -37,6 +39,7 @@ export const setupGameSocket = ({
   onConnectedUsernamesUpdate: (
     newConnectedUsernames: Record<string, boolean>,
   ) => void;
+  onOpponentsUpdate: (opponents: OpponentDto[]) => void;
   onConnect: () => void;
   onDisconnect: () => void;
 }) => {
@@ -81,6 +84,10 @@ export const setupGameSocket = ({
 
   socket.on("connectedUsernames.update", (usernames) => {
     onConnectedUsernamesUpdate(usernames);
+  });
+
+  socket.on("opponents.update", (opponents) => {
+    onOpponentsUpdate(opponents);
   });
 
   socket.on("connect_error", (error) => {

@@ -6,6 +6,13 @@ import type { PlayerDto } from "@/app/Player/domain/dtos/player";
 import { Server, Socket as ServerSocker, type Namespace } from "socket.io";
 import { Socket } from "socket.io-client";
 
+export type OpponentDto = {
+  username: string;
+  cardCount: number;
+  isPlaying: boolean;
+  hasStarted: boolean;
+};
+
 export interface ServerToClientEvents {
   "player.self.update": (selfPlayer: PlayerDto) => void;
   "player.drawnCard": (player: PlayerDto) => void;
@@ -18,6 +25,7 @@ export interface ServerToClientEvents {
   "gameBoard.update": (gameBoard: GameBoardDto) => void;
   "game.infos.update": (game: GameInfosDto) => void;
   "connectedUsernames.update": (usernames: Record<string, boolean>) => void;
+  "opponents.update": (opponents: OpponentDto[]) => void;
 }
 
 export interface ClientToServerEvents {
