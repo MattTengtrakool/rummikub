@@ -3,7 +3,7 @@ import { NuxtLink } from "#components";
 
 withDefaults(
   defineProps<{
-    type?: "primary" | "secondary" | "danger" | "success";
+    type?: "primary" | "secondary" | "danger" | "success" | "filled";
     text?: string;
     disabled?: boolean;
     href?: string;
@@ -18,10 +18,11 @@ withDefaults(
     @click="$emit('click')"
     type="button"
     :disabled="disabled"
-    class="h-8 px-4 rounded-md justify-center items-center gap-2 inline-flex"
+    class="h-9 px-5 rounded-lg justify-center items-center gap-2 inline-flex transition-colors"
     :class="{
-      'bg-button-bg': !disabled,
       'bg-button-bg-disabled text-button-text-disabled': disabled,
+      'bg-body-text text-white hover:bg-black/80': !disabled && type === 'filled',
+      'bg-button-bg': !disabled && type !== 'filled',
       'text-button-text-danger': !disabled && type === 'danger',
       'text-button-text-success': !disabled && type === 'success',
       'text-body-text':

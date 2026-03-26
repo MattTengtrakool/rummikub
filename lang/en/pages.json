@@ -1,6 +1,7 @@
 {
     "home": {
         "username": "Username",
+        "set_username": "Set name",
         "create_game": "Create a game",
         "join_game": "Join game",
         "code_join_game": "Game code",
@@ -10,7 +11,9 @@
     "game": {
         "start": "Start the game",
         "waiting_for_players": "Waiting for another player to start",
-        "invite_friends": "Code to join the game: {code}",
+        "invite_friends": "Share this code to invite players",
+        "invite_code": "Game code",
+        "copied": "Copied!",
         "waiting_for_host": "Waiting for the host to start the game",
         "unable_to_connect": {
             "title": "Unable to connect",
