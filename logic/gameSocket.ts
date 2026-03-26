@@ -6,6 +6,7 @@ import type { CardPositionOnBoard } from "@/app/GameBoard/application/GameBoard"
 import type { GameBoardDto } from "@/app/GameBoard/domain/dtos/gameBoard";
 import type { PlayerDto } from "@/app/Player/domain/dtos/player";
 import type {
+  ChatMessage,
   ClientToServerEvents,
   CursorPosition,
   OpponentDto,
@@ -32,6 +33,7 @@ export const setupGameSocket = ({
   onTimerStart,
   onTimerExpired,
   onSettingsUpdate,
+  onChatMessage,
   onConnect,
   onDisconnect,
 }: {
@@ -57,6 +59,7 @@ export const setupGameSocket = ({
   onTimerStart: (durationSeconds: number) => void;
   onTimerExpired: () => void;
   onSettingsUpdate: (settings: { timerSettings: TimerSettings }) => void;
+  onChatMessage: (message: ChatMessage) => void;
   onConnect: () => void;
   onDisconnect: () => void;
 }) => {
@@ -129,6 +132,10 @@ export const setupGameSocket = ({
 
   socket.on("game.settings.update", (settings) => {
     onSettingsUpdate(settings);
+  });
+
+  socket.on("chat.message", (message) => {
+    onChatMessage(message);
   });
 
   socket.on("connect_error", (error) => {
@@ -204,6 +211,10 @@ export const setupGameSocket = ({
     socket.emit("game.updateSettings", settings);
   };
 
+  const sendChatMessage = (text: string) => {
+    socket.emit("chat.send", text);
+  };
+
   return {
     socket,
     startGame,
@@ -220,5 +231,6 @@ export const setupGameSocket = ({
     returnCardToHand,
     moveCursor,
     updateSettings,
+    sendChatMessage,
   };
 };

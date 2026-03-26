@@ -6,6 +6,7 @@ import type { CardPositionOnBoard } from "@/app/GameBoard/application/GameBoard"
 import type { GameBoardDto } from "@/app/GameBoard/domain/dtos/gameBoard";
 import type { PlayerDto } from "@/app/Player/domain/dtos/player";
 import type {
+  ChatMessage,
   OpponentDto,
   RemoteCursor,
 } from "@/app/WebSocket/infrastructure/types";
@@ -75,9 +76,15 @@ export const useGame = (gameId: any, username: any) => {
     }, 1000);
   };
 
-  const actionsLogs = ref<Array<string>>([]);
-  const logAction = (action: string) => actionsLogs.value.push(action);
-  const logs = computed(() => actionsLogs.value.slice(-5));
+  type FeedEntry = {
+    type: "action" | "chat";
+    text: string;
+    username?: string;
+  };
+
+  const feedEntries = ref<FeedEntry[]>([]);
+  const logAction = (action: string) =>
+    feedEntries.value.push({ type: "action", text: action });
 
   const pick = <T>(...items: T[]): T =>
     items[Math.floor(Math.random() * items.length)];
@@ -100,6 +107,7 @@ export const useGame = (gameId: any, username: any) => {
     moveCursor,
     undoLastAction: rawUndoLastAction,
     updateSettings,
+    sendChatMessage,
   } = setupGameSocket({
     gameId,
     username,
@@ -274,6 +282,13 @@ export const useGame = (gameId: any, username: any) => {
         };
       }
     },
+    onChatMessage(message) {
+      feedEntries.value.push({
+        type: "chat",
+        text: message.text,
+        username: message.username === username ? t("toast.you") : message.username,
+      });
+    },
     onConnect() {
       connected.value = true;
       disconnected.value = false;
@@ -310,7 +325,7 @@ export const useGame = (gameId: any, username: any) => {
     opponents,
     highlightedCard,
     remoteCursors,
-    logs,
+    feedEntries,
     timerRemaining,
     timerExpired,
     startGame,
@@ -322,6 +337,7 @@ export const useGame = (gameId: any, username: any) => {
     pass,
     moveCursor,
     updateSettings,
+    sendChatMessage,
     cardDraggingHandler,
   };
 };

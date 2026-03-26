@@ -322,6 +322,15 @@ export const registerGameEvents = ({
       });
     });
 
+    socket.on("chat.send", (text) => {
+      if (typeof text !== "string" || text.trim().length === 0 || text.length > 500) return;
+      io.to(gameRoom(game)).emit("chat.message", {
+        username: player.username,
+        text: text.trim(),
+        timestamp: Date.now(),
+      });
+    });
+
     socket.on("player.placeCardInCombination", (cardIndex, destination) => {
       if (!player.canPlaceCardInCombination()) {
         return;

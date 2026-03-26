@@ -14,6 +14,12 @@ export type OpponentDto = {
   hasStarted: boolean;
 };
 
+export type ChatMessage = {
+  username: string;
+  text: string;
+  timestamp: number;
+};
+
 export interface ServerToClientEvents {
   "player.self.update": (selfPlayer: PlayerDto) => void;
   "player.drawnCard": (player: PlayerDto) => void;
@@ -33,6 +39,7 @@ export interface ServerToClientEvents {
   "timer.start": (durationSeconds: number) => void;
   "timer.expired": () => void;
   "game.settings.update": (settings: { timerSettings: TimerSettings }) => void;
+  "chat.message": (message: ChatMessage) => void;
 }
 
 export interface ClientToServerEvents {
@@ -56,6 +63,7 @@ export interface ClientToServerEvents {
   "player.pass": () => void;
   "cursor.move": (position: CursorPosition) => void;
   "game.updateSettings": (settings: { timerSettings: TimerSettings }) => void;
+  "chat.send": (text: string) => void;
 }
 
 export type DraggingCardInfo = {

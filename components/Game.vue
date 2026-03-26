@@ -139,9 +139,10 @@
     ></GameBoard>
 
     <div v-if="game.gameInfos.value.state !== 'created'" class="relative">
-      <ActionsLogs
-        class="pointer-events-none absolute bottom-full w-full"
-        :actions="game.logs.value"
+      <ActivityChat
+        class="absolute bottom-full w-full z-10"
+        :feed="game.feedEntries.value"
+        @send="game.sendChatMessage($event)"
       />
 
       <PlayerDeck
