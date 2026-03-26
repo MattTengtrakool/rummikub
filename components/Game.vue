@@ -33,7 +33,7 @@
       <template v-if="game.gameInfos.value.state === 'started'">
         <span
           v-if="game.selfPlayer.value.isPlaying"
-          class="text-sm font-bold text-white bg-button-text-success px-3 py-1 rounded-full animate-pulse"
+          class="text-sm font-bold text-white bg-button-text-success px-3 py-1 rounded-full"
         >
           {{ t("pages.game.your_turn") }}
         </span>

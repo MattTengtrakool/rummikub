@@ -17,7 +17,7 @@ const MAX_VISIBLE_TILES = 14;
       <div class="flex items-center gap-1.5">
         <span
           class="size-2 rounded-full shrink-0"
-          :class="opponent.isPlaying ? 'bg-button-text-success animate-pulse' : 'bg-gray-300'"
+          :class="opponent.isPlaying ? 'bg-button-text-success' : 'bg-gray-300'"
         />
         <span class="text-xs font-medium whitespace-nowrap">
           {{ opponent.username }}

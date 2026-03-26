@@ -129,9 +129,9 @@ const reconcileCards = (serverCards: ReadonlyArray<CardDto>) => {
       return spacerCount > bestCount ? idx : best;
     }, 0);
 
-    const lastSpacerIdx = findLastIndex(newRows[target], isSpacer);
-    if (lastSpacerIdx !== -1) {
-      newRows[target][lastSpacerIdx] = toHandCard(sc, sc.initialIndex);
+    const firstTrailingSpacerIdx = findFirstTrailingSpacer(newRows[target]);
+    if (firstTrailingSpacerIdx !== -1) {
+      newRows[target][firstTrailingSpacerIdx] = toHandCard(sc, sc.initialIndex);
     } else {
       newRows[target].push(toHandCard(sc, sc.initialIndex));
     }
@@ -160,6 +160,18 @@ const findLastIndex = <T,>(arr: T[], predicate: (item: T) => boolean): number =>
     if (predicate(arr[i])) return i;
   }
   return -1;
+};
+
+const findFirstTrailingSpacer = (row: HandItem[]): number => {
+  let lastCardIdx = -1;
+  for (let i = row.length - 1; i >= 0; i--) {
+    if (!isSpacer(row[i])) {
+      lastCardIdx = i;
+      break;
+    }
+  }
+  const candidate = lastCardIdx + 1;
+  return candidate < row.length && isSpacer(row[candidate]) ? candidate : -1;
 };
 
 watch(
@@ -204,23 +216,9 @@ const handleDragEnd = () => {
   stopDragging();
 };
 
-const turnFlash = ref(false);
-
-watch(
-  () => props.player.isPlaying,
-  (isPlaying, wasPlaying) => {
-    if (isPlaying && !wasPlaying) {
-      turnFlash.value = true;
-      setTimeout(() => (turnFlash.value = false), 1000);
-    }
-  },
-);
 </script>
 <template>
-  <div
-    class="bg-body-bg border-t flex flex-col gap-1 px-2 py-3"
-    :class="[turnFlash && 'deck-flash']"
-  >
+  <div class="bg-body-bg border-t flex flex-col gap-3 px-2 py-3">
     <GameRuleReminder
       v-if="player.isPlaying && !player.hasStarted"
       :game-rule="'first_turn'"
@@ -321,16 +319,4 @@ watch(
   }
 }
 
-.deck-flash {
-  animation: deck-glow 1s ease-out;
-}
-
-@keyframes deck-glow {
-  0% {
-    box-shadow: inset 0 4px 12px rgba(63, 132, 21, 0.5);
-  }
-  100% {
-    box-shadow: inset 0 0 0 transparent;
-  }
-}
 </style>

@@ -3,7 +3,6 @@ import type { CardDto } from "@/app/Card/domain/dtos/card";
 import type { CombinationDto } from "@/app/Combination/domain/dtos/combination";
 import type { ChangeEvent } from "@/lib/vueDraggable";
 import { toKey } from "@/logic/card";
-import { ExclamationTriangleIcon } from "@heroicons/vue/16/solid";
 import { ref, watch } from "vue";
 import Draggable from "vuedraggable";
 
@@ -22,7 +21,6 @@ const emit = defineEmits<{
   moved: [card: CardDto, oldIndex: number, newIndex: number];
 }>();
 
-const { t } = useI18n();
 const { startDragging, stopDragging } = useDraggingCard();
 
 const cards = ref([...props.combination.cards]);
@@ -59,7 +57,10 @@ const handleDragStart = (e: { oldIndex: number }) => {
 };
 </script>
 <template>
-  <div class="w-min flex flex-col items-center gap-1 p-2 px-4">
+  <div
+    class="w-min flex flex-col items-center gap-1 p-2 px-4 transition-shadow duration-300"
+    :class="[combination.type === 'invalid' && 'combination-invalid']"
+  >
     <Draggable
       :disabled="disabled"
       v-model="cards"
@@ -82,18 +83,11 @@ const handleDragStart = (e: { oldIndex: number }) => {
         />
       </template>
     </Draggable>
-
-    <span
-      v-if="combination.type === 'invalid'"
-      class="flex items-center gap-1 text-button-text-danger text-xs font-black"
-    >
-      <ExclamationTriangleIcon class="w-3.5 h-3.5" />
-      {{ t("invalid") }}
-    </span>
   </div>
 </template>
 
-<i18n lang="yaml">
-en:
-  invalid: "Invalid"
-</i18n>
+<style scoped>
+.combination-invalid :deep(.inline-flex) {
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.35);
+}
+</style>

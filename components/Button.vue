@@ -20,7 +20,7 @@ const handleClick = (e: MouseEvent) => {
   if (props.disabled) return;
 
   if (!props.silent) {
-    play("button-click", 0.5);
+    play("button-click", 0.8);
   }
 
   if (props.href) {
