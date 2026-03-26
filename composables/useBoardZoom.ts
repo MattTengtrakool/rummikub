@@ -20,12 +20,30 @@ export const useBoardZoom = () => {
 
   const clampScale = (s: number) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, s));
 
-  const zoomIn = () => {
-    scale.value = clampScale(scale.value + ZOOM_STEP);
+  const zoomAtPoint = (newScale: number, anchorX: number, anchorY: number) => {
+    newScale = clampScale(newScale);
+    const ratio = newScale / scale.value;
+    translateX.value = anchorX - ratio * (anchorX - translateX.value);
+    translateY.value = anchorY - ratio * (anchorY - translateY.value);
+    scale.value = newScale;
   };
 
-  const zoomOut = () => {
-    scale.value = clampScale(scale.value - ZOOM_STEP);
+  const zoomIn = (containerEl?: HTMLElement | null) => {
+    if (containerEl) {
+      const rect = containerEl.getBoundingClientRect();
+      zoomAtPoint(scale.value + ZOOM_STEP, rect.width / 2, rect.height / 2);
+    } else {
+      scale.value = clampScale(scale.value + ZOOM_STEP);
+    }
+  };
+
+  const zoomOut = (containerEl?: HTMLElement | null) => {
+    if (containerEl) {
+      const rect = containerEl.getBoundingClientRect();
+      zoomAtPoint(scale.value - ZOOM_STEP, rect.width / 2, rect.height / 2);
+    } else {
+      scale.value = clampScale(scale.value - ZOOM_STEP);
+    }
   };
 
   const resetZoom = () => {

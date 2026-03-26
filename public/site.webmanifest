@@ -1,6 +1,9 @@
 {
-  "name": "Rummikub",
+  "name": "Rummikub — Play Online with Friends",
   "short_name": "Rummikub",
+  "description": "Play Rummikub online with friends in real time. Create a room, share the code, and start playing — no sign-up required.",
+  "start_url": "/",
+  "scope": "/",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",

@@ -39,6 +39,11 @@ const isTempUsername = computed(() => isBlank(toValue(tempUsername)));
 
 useLightMode();
 
+useSeoMeta({
+  title: "Game Room — Rummikub",
+  robots: "noindex, nofollow",
+});
+
 const saveUsername = () => {
   username.value = tempUsername.value;
 };

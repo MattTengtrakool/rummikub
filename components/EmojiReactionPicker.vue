@@ -41,7 +41,7 @@ function handleReact(type: ReactionType) {
     <Transition name="picker-pop">
       <div
         v-if="open"
-        class="absolute bottom-full right-0 mb-1 flex items-center gap-1 bg-card-bg border border-card-border rounded-full px-2 py-1 shadow-lg"
+        class="absolute bottom-full left-0 mb-1 flex items-center gap-1 bg-card-bg border border-card-border rounded-full px-2 py-1 shadow-lg"
       >
         <button
           v-for="r in REACTIONS"

@@ -1,5 +1,7 @@
 {
   "name": "rummikub",
+  "description": "Online multiplayer Rummikub game built with Nuxt 3, Vue 3, and Socket.IO",
+  "keywords": ["rummikub", "multiplayer", "board-game", "nuxt", "vue", "socket-io", "real-time"],
   "private": true,
   "type": "module",
   "scripts": {

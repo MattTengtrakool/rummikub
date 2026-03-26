@@ -70,6 +70,7 @@ const handleDragStart = (e: { oldIndex: number }) => {
       :item-key="(card: CardDto) => toKey(card)"
       :delay="150"
       :delayOnTouchOnly="true"
+      :animation="200"
       @change="handleChange"
       @start="handleDragStart"
       @end="stopDragging"

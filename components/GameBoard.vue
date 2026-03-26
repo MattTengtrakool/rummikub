@@ -142,6 +142,8 @@ const handleBoardPointerDown = (e: PointerEvent) => {
 const handleFit = () => {
   zoom.fitToScreen(boardRef.value, contentRef.value);
 };
+
+const contentStyle = computed(() => zoom.transformStyle.value);
 </script>
 <template>
   <div
@@ -160,8 +162,8 @@ const handleFit = () => {
   >
     <div
       ref="contentRef"
-      class="px-2 py-4 flex flex-wrap justify-start items-start content-start min-w-full min-h-full will-change-transform"
-      :style="zoom.transformStyle.value"
+      class="px-2 py-4 flex flex-wrap justify-start items-start content-start min-w-full min-h-full will-change-transform transition-transform duration-150"
+      :style="contentStyle"
     >
       <Combination
         v-for="(combination, combinationIndex) in gameBoard.combinations"
@@ -209,28 +211,29 @@ const handleFit = () => {
       :color-index="entry.index"
     />
 
-    <div class="absolute bottom-2 right-2 flex gap-1 z-10">
+    <div class="absolute bottom-3 right-3 flex gap-1.5 z-50 pointer-events-auto">
       <button
-        @click="zoom.zoomIn()"
-        class="size-8 rounded bg-card-bg border border-card-border flex items-center justify-center hover:bg-separator transition-colors"
+        @click.stop="zoom.zoomIn(boardRef)"
+        class="size-9 rounded-lg bg-card-bg border border-card-border shadow-md flex items-center justify-center cursor-pointer hover:bg-separator active:scale-95 transition-all"
         title="Zoom in"
       >
-        <MagnifyingGlassPlusIcon class="size-4" />
+        <MagnifyingGlassPlusIcon class="size-5" />
       </button>
       <button
-        @click="zoom.zoomOut()"
-        class="size-8 rounded bg-card-bg border border-card-border flex items-center justify-center hover:bg-separator transition-colors"
+        @click.stop="zoom.zoomOut(boardRef)"
+        class="size-9 rounded-lg bg-card-bg border border-card-border shadow-md flex items-center justify-center cursor-pointer hover:bg-separator active:scale-95 transition-all"
         title="Zoom out"
       >
-        <MagnifyingGlassMinusIcon class="size-4" />
+        <MagnifyingGlassMinusIcon class="size-5" />
       </button>
       <button
-        @click="handleFit"
-        class="size-8 rounded bg-card-bg border border-card-border flex items-center justify-center hover:bg-separator transition-colors"
+        @click.stop="handleFit"
+        class="size-9 rounded-lg bg-card-bg border border-card-border shadow-md flex items-center justify-center cursor-pointer hover:bg-separator active:scale-95 transition-all"
         title="Fit to screen"
       >
-        <ArrowsPointingOutIcon class="size-4" />
+        <ArrowsPointingOutIcon class="size-5" />
       </button>
     </div>
   </div>
 </template>
+

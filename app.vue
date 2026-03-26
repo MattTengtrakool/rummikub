@@ -22,10 +22,6 @@
       <Link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5" />
       <Meta name="msapplication-TileColor" content="#da532c" />
       <Meta name="theme-color" content="#ffffff" />
-      <Meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content"
-      />
     </Head>
     <NuxtPage />
 

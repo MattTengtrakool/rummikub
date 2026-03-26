@@ -219,7 +219,7 @@ const handleDragEnd = () => {
 
 </script>
 <template>
-  <div class="bg-body-bg border-t flex flex-col gap-3 px-2 py-3">
+  <div class="bg-body-bg border-t flex flex-col gap-1.5 px-2 py-1.5">
     <GameRuleReminder
       v-if="player.isPlaying && !player.hasStarted"
       :game-rule="'first_turn'"

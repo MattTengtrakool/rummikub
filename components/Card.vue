@@ -9,11 +9,12 @@ import RedCardSymbol from "@/assets/card/symbol/red.svg?component";
 import YellowCardSymbol from "@/assets/card/symbol/yellow.svg?component";
 import { LockClosedIcon } from "@heroicons/vue/16/solid";
 
-defineProps<{
+const props = defineProps<{
   movable?: boolean;
   locked?: boolean;
   highlighted?: boolean;
   dimmed?: boolean;
+  animate?: boolean;
   number: CardNumber;
   color: CardColor;
 }>();
@@ -27,7 +28,7 @@ const dragHintOpen = ref(false);
     @click="dragHintOpen=true"
     @mousedown="dragHintOpen = false"
     class="border border-card-border relative overflow-hidden select-none w-10 h-12 md:w-12 md:h-16 bg-card-bg rounded flex-col justify-center items-center gap-1 inline-flex transition-opacity duration-200"
-    :class="[movable && 'hover:shadow-lg cursor-move', highlighted && 'ring-4', dimmed && 'opacity-25 border-dashed']"
+    :class="[movable && 'hover:shadow-lg cursor-move', highlighted && 'ring-4', dimmed && 'opacity-25 border-dashed', animate && 'card-enter']"
   >
     <template v-if="isJokerNumber(number)">
       <BlackJokerSymbol
@@ -73,3 +74,14 @@ const dragHintOpen = ref(false);
     </UPopover>
   </div>
 </template>
+
+<style scoped>
+.card-enter {
+  animation: card-pop-in 150ms ease-out;
+}
+
+@keyframes card-pop-in {
+  from { transform: scale(0.85); opacity: 0.5; }
+  to { transform: scale(1); opacity: 1; }
+}
+</style>

@@ -13,4 +13,9 @@
 </template>
 <script setup lang="ts">
 const { t } = useI18n();
+
+useSeoMeta({
+  title: "Rules — Rummikub",
+  description: "Learn how to play Rummikub: tile values, initial meld, table manipulation, and winning conditions.",
+});
 </script>

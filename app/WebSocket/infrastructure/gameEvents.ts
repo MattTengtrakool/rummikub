@@ -90,7 +90,6 @@ export const registerGameEvents = ({
     io.to(gameRoom(game)).emit("gameBoard.update", gameDto.gameBoard);
 
     gameDto.players.forEach((player) => {
-      console.log(`emited to ${player.username}`);
       io.to(playerRoom(game, player)).emit("player.self.update", player);
 
       const opponents: OpponentDto[] = gameDto.players
@@ -121,14 +120,10 @@ export const registerGameEvents = ({
     game: IGame;
     player: IPlayer;
   }) => {
-    console.log(`game ${game.id}`);
-
     socket.join(gameRoom(game));
     socket.join(playerRoom(game, player));
 
     socket.data.player = player;
-
-    console.log(`${game.playerCount} players`);
 
     emitGameUpdate(game);
     emitConnectionsUpdate(game);
@@ -138,9 +133,6 @@ export const registerGameEvents = ({
         gameId: game.id,
         username: player.username,
       });
-
-      console.log("A player disconnected");
-      console.log(`${game.playerCount} players`);
 
       if (game.isEnded()) {
         clearTurnTimer(game.id);
@@ -158,8 +150,6 @@ export const registerGameEvents = ({
       if (!game.canStart() || !player.admin) {
         return;
       }
-
-      console.log("Start game");
 
       game.start();
       emitGameUpdate(game);
@@ -180,8 +170,6 @@ export const registerGameEvents = ({
     });
 
     socket.on("game.leave", () => {
-      console.log(`${player.username} left game ${game.id}`);
-
       gameManager.leave({
         gameId: game.id,
         username: player.username,
@@ -381,8 +369,6 @@ export const registerGameEvents = ({
     const username = socket.handshake.query.username;
     const sessionToken = socket.handshake.query.sessionToken;
 
-    console.log(`New player (${username}) want to join game ${gameId}`);
-
     if (typeof gameId !== "string" || typeof username !== "string") {
       socket.disconnect();
       return;
@@ -394,8 +380,6 @@ export const registerGameEvents = ({
         username,
         sessionToken: typeof sessionToken === "string" ? sessionToken : undefined,
       });
-
-      console.log(`${username} ${isReconnect ? "reconnected" : "connected"}`);
 
       bindEventsToSocket({ socket, game, player });
 

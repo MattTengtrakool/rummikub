@@ -211,10 +211,12 @@ export const useGame = (gameId: any, username: any) => {
           { name },
         ),
       );
+      play("button-click", 0.4);
     },
     onPlayerUndoneAction(player) {
       const name = displayName(player);
       logAction(t("toast.player_actions.undone", { name }));
+      play("button-click", 0.4);
     },
     onPlayerDrawnCard(player) {
       const name = displayName(player);

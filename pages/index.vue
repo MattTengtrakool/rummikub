@@ -94,6 +94,11 @@ const { t } = useI18n();
 
 useLightMode();
 
+useSeoMeta({
+  title: "Rummikub — Play Online with Friends",
+  description: "Play Rummikub online with friends in real time. Create a room, share the code, and start playing the classic tile-matching game — no sign-up required.",
+});
+
 const joinRoomId = ref("");
 const getJoinRoomUrl = computed(() => `/games/${joinRoomId.value}`);
 const joinRoom = () => navigateTo(getJoinRoomUrl.value);
