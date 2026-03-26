@@ -1,0 +1,16 @@
+services:
+  - type: web
+    runtime: node
+    name: rummikub
+    plan: free
+    buildCommand: yarn install --frozen-lockfile && yarn build
+    startCommand: node .output/server/index.mjs
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 10000
+      - key: NITRO_PORT
+        value: 10000
