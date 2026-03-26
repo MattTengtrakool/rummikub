@@ -26,7 +26,7 @@ const dragHintOpen = ref(false);
   <div
     @click="dragHintOpen=true"
     @mousedown="dragHintOpen = false"
-    class="border border-card-border relative overflow-hidden select-none w-9 h-11 md:w-12 md:h-16 bg-card-bg rounded flex-col justify-center items-center gap-1 inline-flex transition-opacity duration-200"
+    class="border border-card-border relative overflow-hidden select-none w-10 h-12 md:w-12 md:h-16 bg-card-bg rounded flex-col justify-center items-center gap-1 inline-flex transition-opacity duration-200"
     :class="[movable && 'hover:shadow-lg cursor-move', highlighted && 'ring-4', dimmed && 'opacity-25 border-dashed']"
   >
     <template v-if="isJokerNumber(number)">

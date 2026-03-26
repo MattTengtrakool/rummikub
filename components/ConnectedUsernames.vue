@@ -4,6 +4,7 @@ import { UserGroupIcon } from "@heroicons/vue/20/solid";
 
 const props = defineProps<{
   usernames: Record<string, boolean>;
+  reconnectingPlayers?: Map<string, number>;
 }>();
 
 const { t } = useI18n();
@@ -27,7 +28,7 @@ const isOpen = ref(false);
       </h2>
       <ul class="flex flex-col items-start gap-2 text-sm">
         <li v-for="(isConnected, username) in usernames" :key="username">
-          <ConnectedUsername :username="username" :is-connected="isConnected" />
+          <ConnectedUsername :username="username" :is-connected="isConnected" :is-reconnecting="reconnectingPlayers?.has(String(username))" />
         </li>
       </ul>
     </div>

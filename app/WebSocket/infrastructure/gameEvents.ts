@@ -1,11 +1,13 @@
 import type { GameId, IGame } from "@/app/Game/application/Game";
-import { type IGameManager } from "@/app/Game/application/GameManager";
+import { RECONNECT_GRACE_SECONDS, type IGameManager } from "@/app/Game/application/GameManager";
 import type { IPlayer } from "@/app/Player/application/Player";
 import type { PlayerDto } from "@/app/Player/domain/dtos/player";
-import type {
-  OpponentDto,
-  WebSocketNamespace,
-  WebSocketServerSocket,
+import {
+  REACTION_TYPES,
+  type OpponentDto,
+  type ReactionType,
+  type WebSocketNamespace,
+  type WebSocketServerSocket,
 } from "@/app/WebSocket/infrastructure/types";
 
 const gameRoom = (game: IGame) => `${game.id}`;
@@ -132,7 +134,7 @@ export const registerGameEvents = ({
     emitConnectionsUpdate(game);
 
     socket.on("disconnect", () => {
-      gameManager.disconnect({
+      const { gracePeriod } = gameManager.disconnect({
         gameId: game.id,
         username: player.username,
       });
@@ -142,6 +144,10 @@ export const registerGameEvents = ({
 
       if (game.isEnded()) {
         clearTurnTimer(game.id);
+      }
+
+      if (gracePeriod) {
+        io.to(gameRoom(game)).emit("player.reconnecting", player.username, RECONNECT_GRACE_SECONDS);
       }
 
       emitGameUpdate(game);
@@ -331,6 +337,15 @@ export const registerGameEvents = ({
       });
     });
 
+    socket.on("reaction.send", (reaction: ReactionType) => {
+      if (!REACTION_TYPES.includes(reaction)) return;
+      io.to(gameRoom(game)).emit("reaction.received", {
+        username: player.username,
+        reaction,
+        timestamp: Date.now(),
+      });
+    });
+
     socket.on("player.placeCardInCombination", (cardIndex, destination) => {
       if (!player.canPlaceCardInCombination()) {
         return;
@@ -346,9 +361,25 @@ export const registerGameEvents = ({
     });
   };
 
+  gameManager.onGraceExpired = (gameId: GameId, username: string) => {
+    try {
+      const game = gameManager.leave({ gameId, username });
+
+      if (game.isEnded()) {
+        clearTurnTimer(gameId);
+      }
+
+      emitGameUpdate(game);
+      emitConnectionsUpdate(game);
+    } catch (e) {
+      console.error("Grace expiry error:", e);
+    }
+  };
+
   io.on("connection", (socket) => {
     const gameId = socket.handshake.query.gameId;
     const username = socket.handshake.query.username;
+    const sessionToken = socket.handshake.query.sessionToken;
 
     console.log(`New player (${username}) want to join game ${gameId}`);
 
@@ -358,14 +389,21 @@ export const registerGameEvents = ({
     }
 
     try {
-      const { game, player } = gameManager.connect({
+      const { game, player, sessionToken: token, isReconnect } = gameManager.connect({
         gameId,
         username,
+        sessionToken: typeof sessionToken === "string" ? sessionToken : undefined,
       });
 
-      console.log(`${username} connected`);
+      console.log(`${username} ${isReconnect ? "reconnected" : "connected"}`);
 
       bindEventsToSocket({ socket, game, player });
+
+      socket.emit("session.token", token);
+
+      if (isReconnect) {
+        io.to(gameRoom(game)).emit("player.reconnected", username);
+      }
     } catch (e) {
       console.error(e);
 

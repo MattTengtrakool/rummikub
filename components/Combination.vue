@@ -68,6 +68,8 @@ const handleDragStart = (e: { oldIndex: number }) => {
       tag="div"
       class="justify-start items-start gap-0.5 inline-flex p-2 -m-2"
       :item-key="(card: CardDto) => toKey(card)"
+      :delay="150"
+      :delayOnTouchOnly="true"
       @change="handleChange"
       @start="handleDragStart"
       @end="stopDragging"

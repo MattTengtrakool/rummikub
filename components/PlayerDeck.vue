@@ -30,6 +30,7 @@ const props = defineProps<{
   cardDraggingHandler: CardDraggingHandler;
   game: GameInfosDto;
   highlightedCardIndex?: number;
+  drawAnimation?: { color: import("@/app/Card/domain/dtos/card").CardColor; number: import("@/app/Card/domain/dtos/card").CardNumber } | null;
 }>();
 
 const emit = defineEmits<{
@@ -260,6 +261,8 @@ const handleDragEnd = () => {
           :sort="true"
           filter=".hand-spacer"
           :preventOnFilter="false"
+          :delay="150"
+          :delayOnTouchOnly="true"
           @change="handleChange"
           @start="(e: any) => handleDragStart(e, rowIndex)"
           @end="handleDragEnd"
@@ -268,6 +271,11 @@ const handleDragEnd = () => {
             <div
               v-if="isSpacer(element)"
               class="hand-spacer"
+            />
+            <DrawAnimation
+              v-else-if="drawAnimation && highlightedCardIndex === element.initialIndex"
+              :color="element.color"
+              :number="element.number"
             />
             <Card
               v-else
@@ -285,11 +293,13 @@ const handleDragEnd = () => {
 
 <style scoped>
 .hand-row {
-  min-height: 2.75rem;
+  min-height: 3rem;
   border-radius: 0.375rem;
   background: #EBEBEB;
   padding: 0.25rem;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
 }
 
 @media (min-width: 768px) {
@@ -306,9 +316,13 @@ const handleDragEnd = () => {
   min-height: inherit;
 }
 
+.hand-row-inner > * {
+  scroll-snap-align: start;
+}
+
 .hand-spacer {
-  width: 1rem;
-  height: 2.75rem;
+  width: 0.75rem;
+  height: 3rem;
   flex-shrink: 0;
 }
 
@@ -318,5 +332,4 @@ const handleDragEnd = () => {
     height: 4rem;
   }
 }
-
 </style>

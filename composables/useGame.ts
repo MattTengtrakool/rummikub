@@ -1,3 +1,4 @@
+import type { CardColor, CardNumber } from "@/app/Card/domain/dtos/card";
 import type {
   GameInfosDto,
   TimerSettings,
@@ -8,6 +9,7 @@ import type { PlayerDto } from "@/app/Player/domain/dtos/player";
 import type {
   ChatMessage,
   OpponentDto,
+  ReactionMessage,
   RemoteCursor,
 } from "@/app/WebSocket/infrastructure/types";
 import GameEndModal from "@/components/GameEndModal.vue";
@@ -18,6 +20,11 @@ import { useSound } from "@/composables/useSound";
 type HighlightedCard = {
   positionOnBoard?: CardPositionOnBoard;
   indexInHand?: number;
+};
+
+export type DrawAnimationData = {
+  color: CardColor;
+  number: CardNumber;
 };
 
 export const useGame = (gameId: any, username: any) => {
@@ -36,7 +43,8 @@ export const useGame = (gameId: any, username: any) => {
   let wasPlaying = false;
 
   const connected = ref(false);
-  const disconnected = ref<boolean>();
+  const disconnected = ref(false);
+  const reconnecting = ref(false);
   const gameInfos = ref<GameInfosDto>();
   const selfPlayer = ref<PlayerDto>();
   const gameBoard = ref<GameBoardDto>();
@@ -44,6 +52,10 @@ export const useGame = (gameId: any, username: any) => {
   const opponents = ref<OpponentDto[]>([]);
   const highlightedCard = ref<HighlightedCard>();
   const remoteCursors = ref<Map<string, RemoteCursor>>(new Map());
+  const reconnectingPlayers = ref<Map<string, number>>(new Map());
+  const reactions = ref<(ReactionMessage & { id: number })[]>([]);
+  const drawAnimation = ref<DrawAnimationData | null>(null);
+  let reactionIdCounter = 0;
 
   const timerRemaining = ref<number | null>(null);
   const timerExpired = ref(false);
@@ -108,6 +120,7 @@ export const useGame = (gameId: any, username: any) => {
     undoLastAction: rawUndoLastAction,
     updateSettings,
     sendChatMessage,
+    sendReaction,
   } = setupGameSocket({
     gameId,
     username,
@@ -223,9 +236,16 @@ export const useGame = (gameId: any, username: any) => {
       }
       if (player.id === selfPlayer.value?.id) {
         play("card-draw");
-        highlightedCard.value = {
-          indexInHand: player.cards.length - 1,
-        };
+        const drawnCard = player.cards[player.cards.length - 1];
+        if (drawnCard) {
+          drawAnimation.value = { color: drawnCard.color, number: drawnCard.number };
+          setTimeout(() => { drawAnimation.value = null; }, 500);
+        }
+        setTimeout(() => {
+          highlightedCard.value = {
+            indexInHand: player.cards.length - 1,
+          };
+        }, 350);
       }
     },
     onPlayerPlayed(player) {
@@ -289,14 +309,41 @@ export const useGame = (gameId: any, username: any) => {
         username: message.username === username ? t("toast.you") : message.username,
       });
     },
+    onPlayerReconnecting(reconnectingUsername, graceSeconds) {
+      const updated = new Map(reconnectingPlayers.value);
+      updated.set(reconnectingUsername, graceSeconds);
+      reconnectingPlayers.value = updated;
+      logAction(t("toast.player_actions.reconnecting", { name: reconnectingUsername }));
+    },
+    onPlayerReconnected(reconnectedUsername) {
+      const updated = new Map(reconnectingPlayers.value);
+      updated.delete(reconnectedUsername);
+      reconnectingPlayers.value = updated;
+      logAction(t("toast.player_actions.reconnected", { name: reconnectedUsername }));
+    },
+    onReactionReceived(message) {
+      const id = reactionIdCounter++;
+      reactions.value.push({ ...message, id });
+      play("button-click", 0.3);
+      setTimeout(() => {
+        reactions.value = reactions.value.filter((r) => r.id !== id);
+      }, 3000);
+    },
     onConnect() {
       connected.value = true;
       disconnected.value = false;
+      reconnecting.value = false;
     },
     onDisconnect() {
       connected.value = false;
-      disconnected.value = true;
+      reconnecting.value = true;
       clearLocalTimer();
+      setTimeout(() => {
+        if (!connected.value) {
+          reconnecting.value = false;
+          disconnected.value = true;
+        }
+      }, 15000);
     },
   });
 
@@ -318,6 +365,10 @@ export const useGame = (gameId: any, username: any) => {
   return {
     connected,
     disconnected,
+    reconnecting,
+    reconnectingPlayers,
+    reactions,
+    drawAnimation,
     gameInfos,
     selfPlayer,
     gameBoard,
@@ -338,6 +389,7 @@ export const useGame = (gameId: any, username: any) => {
     moveCursor,
     updateSettings,
     sendChatMessage,
+    sendReaction,
     cardDraggingHandler,
   };
 };

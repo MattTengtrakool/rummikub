@@ -1,7 +1,20 @@
 <template>
   <div
     class="h-dvh flex flex-col items-center justify-center bg-body-bg text-body-text px-4"
-    v-if="game.disconnected.value"
+    v-if="game.reconnecting.value && !game.connected.value"
+  >
+    <div class="flex flex-col items-center text-center gap-3">
+      <div class="size-12 rounded-full bg-separator flex items-center justify-center mb-1 animate-pulse">
+        <ExclamationTriangleIcon class="size-6 text-yellow-500" />
+      </div>
+      <h1 class="text-xl font-bold">Reconnecting...</h1>
+      <p class="text-sm text-body-text-disabled">Attempting to reconnect to the game</p>
+    </div>
+  </div>
+
+  <div
+    class="h-dvh flex flex-col items-center justify-center bg-body-bg text-body-text px-4"
+    v-else-if="game.disconnected.value"
   >
     <div class="flex flex-col items-center text-center gap-3">
       <div class="size-12 rounded-full bg-separator flex items-center justify-center mb-1">
@@ -25,19 +38,19 @@
       game.connectedUsernames.value
     "
   >
-    <nav class="flex gap-2 p-4 border-b border-separator items-center justify-between">
-      <div class="flex items-center gap-3">
-        <span v-if="game.gameInfos.value.state === 'created'" class="text-sm font-medium">
+    <nav class="flex gap-1.5 md:gap-2 px-2 py-2 md:p-4 border-b border-separator items-center justify-between">
+      <div class="flex items-center gap-2 md:gap-3 min-w-0">
+        <span v-if="game.gameInfos.value.state === 'created'" class="text-xs md:text-sm font-medium truncate">
           {{ t("pages.game.invite_code") }}
         </span>
       <template v-if="game.gameInfos.value.state === 'started'">
         <span
           v-if="game.selfPlayer.value.isPlaying"
-          class="text-sm font-bold text-white bg-button-text-success px-3 py-1 rounded-full"
+          class="text-xs md:text-sm font-bold text-white bg-button-text-success px-2 md:px-3 py-1 rounded-full whitespace-nowrap"
         >
           {{ t("pages.game.your_turn") }}
         </span>
-        <span v-else class="text-sm text-body-text-disabled">
+        <span v-else class="text-xs md:text-sm text-body-text-disabled truncate">
           {{ t("pages.game.turn_of", { username: game.gameInfos.value.currentPlayerUsername }) }}
         </span>
       </template>
@@ -50,7 +63,7 @@
         />
       </div>
 
-      <div class="flex gap-2">
+      <div class="flex gap-1.5 md:gap-2 shrink-0">
         <Button @click="modal.open(GameRulesModal)">
           <div class="flex gap-2">
             <BookOpenIcon class="size-4 text-body-text" />
@@ -60,6 +73,7 @@
         <ConnectedUsernames
           v-if="game.connectedUsernames.value"
           :usernames="game.connectedUsernames.value"
+          :reconnecting-players="game.reconnectingPlayers.value"
         />
 
         <Button @click="handleLeaveGame">
@@ -126,6 +140,7 @@
     <OpponentStrip
       v-if="game.gameInfos.value.state === 'started' && game.opponents.value.length > 0"
       :opponents="game.opponents.value"
+      :reconnecting-players="game.reconnectingPlayers.value"
     />
 
     <GameBoard
@@ -138,11 +153,19 @@
       :move-cursor="game.moveCursor"
     ></GameBoard>
 
+    <FloatingReaction
+      v-for="reaction in game.reactions.value"
+      :key="reaction.id"
+      :reaction="reaction.reaction"
+      :username="reaction.username"
+    />
+
     <div v-if="game.gameInfos.value.state !== 'created'" class="relative">
       <ActivityChat
         class="absolute bottom-full w-full z-10"
         :feed="game.feedEntries.value"
         @send="game.sendChatMessage($event)"
+        @react="game.sendReaction($event)"
       />
 
       <PlayerDeck
@@ -151,6 +174,7 @@
         :card-dragging-handler="game.cardDraggingHandler"
         :game="game.gameInfos.value"
         :highlighted-card-index="game.highlightedCard.value?.indexInHand"
+        :draw-animation="game.drawAnimation.value"
         @cancel-turn-modifications="game.cancelTurnModifications()"
         @undo-last-action="game.undoLastAction()"
         @draw-card="game.drawCard()"

@@ -1,26 +1,34 @@
 <script setup lang="ts">
 import type { OpponentDto } from "@/app/WebSocket/infrastructure/types";
 
-defineProps<{
+const props = defineProps<{
   opponents: OpponentDto[];
+  reconnectingPlayers?: Map<string, number>;
 }>();
 
 const MAX_VISIBLE_TILES = 14;
 </script>
 <template>
-  <div class="flex flex-wrap gap-3 px-4 py-2 border-b bg-body-bg">
+  <div class="flex flex-nowrap gap-3 px-4 py-2 border-b bg-body-bg overflow-x-auto">
     <div
       v-for="opponent in opponents"
       :key="opponent.username"
-      class="flex items-center gap-2"
+      class="flex items-center gap-2 shrink-0"
     >
       <div class="flex items-center gap-1.5">
         <span
           class="size-2 rounded-full shrink-0"
-          :class="opponent.isPlaying ? 'bg-button-text-success' : 'bg-gray-300'"
+          :class="[
+            opponent.isPlaying ? 'bg-button-text-success' :
+            reconnectingPlayers?.has(opponent.username) ? 'bg-yellow-500 animate-pulse' :
+            'bg-gray-300'
+          ]"
         />
         <span class="text-xs font-medium whitespace-nowrap">
           {{ opponent.username }}
+        </span>
+        <span v-if="reconnectingPlayers?.has(opponent.username)" class="text-[9px] text-yellow-600 whitespace-nowrap">
+          reconnecting...
         </span>
       </div>
 

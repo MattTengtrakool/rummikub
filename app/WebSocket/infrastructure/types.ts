@@ -20,6 +20,16 @@ export type ChatMessage = {
   timestamp: number;
 };
 
+export type ReactionType = "thumbs-up" | "clap" | "thinking" | "laugh" | "fire" | "cry";
+
+export type ReactionMessage = {
+  username: string;
+  reaction: ReactionType;
+  timestamp: number;
+};
+
+export const REACTION_TYPES: ReactionType[] = ["thumbs-up", "clap", "thinking", "laugh", "fire", "cry"];
+
 export interface ServerToClientEvents {
   "player.self.update": (selfPlayer: PlayerDto) => void;
   "player.drawnCard": (player: PlayerDto) => void;
@@ -40,6 +50,10 @@ export interface ServerToClientEvents {
   "timer.expired": () => void;
   "game.settings.update": (settings: { timerSettings: TimerSettings }) => void;
   "chat.message": (message: ChatMessage) => void;
+  "session.token": (token: string) => void;
+  "player.reconnecting": (username: string, graceSeconds: number) => void;
+  "player.reconnected": (username: string) => void;
+  "reaction.received": (message: ReactionMessage) => void;
 }
 
 export interface ClientToServerEvents {
@@ -64,6 +78,7 @@ export interface ClientToServerEvents {
   "cursor.move": (position: CursorPosition) => void;
   "game.updateSettings": (settings: { timerSettings: TimerSettings }) => void;
   "chat.send": (text: string) => void;
+  "reaction.send": (reaction: ReactionType) => void;
 }
 
 export type DraggingCardInfo = {

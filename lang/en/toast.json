@@ -19,6 +19,8 @@
     "timer_forced_draw": "{name} ran out of time and drew a tile",
     "timer_forced_pass": "{name} ran out of time and passed",
     "won": "{name} won the game!",
-    "player_left": "A player left the game"
+    "player_left": "A player left the game",
+    "reconnecting": "{name} lost connection — reconnecting...",
+    "reconnected": "{name} is back!"
   }
 }

@@ -7,6 +7,8 @@ import type {
   RemoteCursor,
 } from "@/app/WebSocket/infrastructure/types";
 import type { CardDraggingHandler } from "@/logic/cardDragging";
+import { MagnifyingGlassPlusIcon, MagnifyingGlassMinusIcon, ArrowsPointingOutIcon } from "@heroicons/vue/20/solid";
+import { useBoardZoom } from "@/composables/useBoardZoom";
 
 const props = defineProps<{
   highlightedCard?: CardPositionOnBoard;
@@ -18,7 +20,10 @@ const props = defineProps<{
 }>();
 
 const boardRef = ref<HTMLElement | null>(null);
+const contentRef = ref<HTMLElement | null>(null);
 const { draggingCard } = useDraggingCard();
+
+const zoom = useBoardZoom();
 
 let lastEmit = 0;
 const THROTTLE_MS = 30;
@@ -42,9 +47,12 @@ const emitCursor = (clientX: number, clientY: number) => {
   const rect = boardRef.value?.getBoundingClientRect();
   if (!rect) return;
 
+  const x = (clientX - rect.left - zoom.translateX.value) / (rect.width * zoom.scale.value);
+  const y = (clientY - rect.top - zoom.translateY.value) / (rect.height * zoom.scale.value);
+
   props.moveCursor({
-    x: (clientX - rect.left) / rect.width,
-    y: (clientY - rect.top) / rect.height,
+    x,
+    y,
     draggingCard: draggingCard.value ?? undefined,
   });
 };
@@ -126,57 +134,103 @@ const handleCardRemoved = (cardIndex: number, combinationIndex: number) => {
 const handleCardAdded = (cardIndex: number, combinationIndex: number) => {
   props.cardDraggingHandler.to(cardIndex, combinationIndex);
 };
+
+const handleBoardPointerDown = (e: PointerEvent) => {
+  zoom.onPointerDown(e, !!draggingCard.value);
+};
+
+const handleFit = () => {
+  zoom.fitToScreen(boardRef.value, contentRef.value);
+};
 </script>
 <template>
   <div
     ref="boardRef"
-    class="px-2 py-4 bg-body-bg flex flex-wrap overflow-auto justify-start items-start content-start flex-1 relative"
+    class="bg-body-bg overflow-hidden flex-1 relative"
+    style="touch-action: none;"
     @mousemove="handleMouseMove"
     @mouseleave="handleMouseLeave"
+    @wheel="zoom.onWheel"
+    @pointerdown="handleBoardPointerDown"
+    @pointermove="zoom.onPointerMove"
+    @pointerup="zoom.onPointerUp"
+    @touchstart="zoom.onTouchStart"
+    @touchmove="zoom.onTouchMove"
+    @touchend="zoom.onTouchEnd"
   >
-    <Combination
-      v-for="(combination, combinationIndex) in gameBoard.combinations"
-      :key="combinationIndex"
-      :combination="combination"
-      :combination-index="combinationIndex"
-      :disabled="!player?.canInteractWithCombination[combinationIndex]"
-      :highlighted-card-index="
-        combinationIndex === highlightedCard?.combinationIndex
-          ? highlightedCard.cardIndex
-          : undefined
-      "
-      :dimmed-card-index="opponentDraggedCards.get(combinationIndex)"
-      :locked="
-        player?.isPlaying &&
-        !player?.canInteractWithCombination[combinationIndex]
-      "
-      @moved="
-        (_, oldIndex: number, newIndex: number) =>
-          handleCardMoved(oldIndex, newIndex, combinationIndex)
-      "
-      @added="
-        (_, oldIndex: number) => handleCardAdded(oldIndex, combinationIndex)
-      "
-      @removed="
-        (_, newIndex: number) => handleCardRemoved(newIndex, combinationIndex)
-      "
-    />
+    <div
+      ref="contentRef"
+      class="px-2 py-4 flex flex-wrap justify-start items-start content-start min-w-full min-h-full will-change-transform"
+      :style="zoom.transformStyle.value"
+    >
+      <Combination
+        v-for="(combination, combinationIndex) in gameBoard.combinations"
+        :key="combinationIndex"
+        :combination="combination"
+        :combination-index="combinationIndex"
+        :disabled="!player?.canInteractWithCombination[combinationIndex]"
+        :highlighted-card-index="
+          combinationIndex === highlightedCard?.combinationIndex
+            ? highlightedCard.cardIndex
+            : undefined
+        "
+        :dimmed-card-index="opponentDraggedCards.get(combinationIndex)"
+        :locked="
+          player?.isPlaying &&
+          !player?.canInteractWithCombination[combinationIndex]
+        "
+        @moved="
+          (_, oldIndex: number, newIndex: number) =>
+            handleCardMoved(oldIndex, newIndex, combinationIndex)
+        "
+        @added="
+          (_, oldIndex: number) => handleCardAdded(oldIndex, combinationIndex)
+        "
+        @removed="
+          (_, newIndex: number) => handleCardRemoved(newIndex, combinationIndex)
+        "
+      />
 
-    <CreateCombinationDragZone
-      v-if="player.canPlaceCardAlone || player.canMoveCardAlone"
-      :card-dragging-handler="cardDraggingHandler"
-      :player="player"
-    />
+      <CreateCombinationDragZone
+        v-if="player.canPlaceCardAlone || player.canMoveCardAlone"
+        :card-dragging-handler="cardDraggingHandler"
+        :player="player"
+      />
+    </div>
 
     <OpponentCursor
       v-for="entry in cursorEntries"
       :key="entry.username"
       :cursor="{
         ...entry.cursor,
-        x: entry.cursor.x * boardSize.width,
-        y: entry.cursor.y * boardSize.height,
+        x: entry.cursor.x * boardSize.width * zoom.scale.value + zoom.translateX.value,
+        y: entry.cursor.y * boardSize.height * zoom.scale.value + zoom.translateY.value,
       }"
       :color-index="entry.index"
     />
+
+    <div class="absolute bottom-2 right-2 flex gap-1 z-10">
+      <button
+        @click="zoom.zoomIn()"
+        class="size-8 rounded bg-card-bg border border-card-border flex items-center justify-center hover:bg-separator transition-colors"
+        title="Zoom in"
+      >
+        <MagnifyingGlassPlusIcon class="size-4" />
+      </button>
+      <button
+        @click="zoom.zoomOut()"
+        class="size-8 rounded bg-card-bg border border-card-border flex items-center justify-center hover:bg-separator transition-colors"
+        title="Zoom out"
+      >
+        <MagnifyingGlassMinusIcon class="size-4" />
+      </button>
+      <button
+        @click="handleFit"
+        class="size-8 rounded bg-card-bg border border-card-border flex items-center justify-center hover:bg-separator transition-colors"
+        title="Fit to screen"
+      >
+        <ArrowsPointingOutIcon class="size-4" />
+      </button>
+    </div>
   </div>
 </template>

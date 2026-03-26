@@ -2,6 +2,7 @@
 const props = defineProps<{
   username: string;
   isConnected: boolean;
+  isReconnecting?: boolean;
 }>();
 </script>
 <template>
@@ -10,9 +11,14 @@ const props = defineProps<{
   >
     <span
       class="rounded-full size-2.5"
-      :class="isConnected ? 'bg-button-text-success' : 'bg-button-text-danger'"
+      :class="[
+        isConnected ? 'bg-button-text-success' :
+        isReconnecting ? 'bg-yellow-500 animate-pulse' :
+        'bg-button-text-danger'
+      ]"
     ></span>
 
     <span>{{ username }}</span>
+    <span v-if="isReconnecting" class="text-[10px] text-yellow-600">Reconnecting...</span>
   </span>
 </template>

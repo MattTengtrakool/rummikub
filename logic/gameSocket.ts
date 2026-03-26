@@ -4,12 +4,15 @@ import type {
 } from "@/app/Game/application/Game";
 import type { CardPositionOnBoard } from "@/app/GameBoard/application/GameBoard";
 import type { GameBoardDto } from "@/app/GameBoard/domain/dtos/gameBoard";
+import { localStorageKey } from "@/app/LocalStorage/infrastructure/constants";
 import type { PlayerDto } from "@/app/Player/domain/dtos/player";
 import type {
   ChatMessage,
   ClientToServerEvents,
   CursorPosition,
   OpponentDto,
+  ReactionMessage,
+  ReactionType,
   RemoteCursor,
   ServerToClientEvents,
 } from "@/app/WebSocket/infrastructure/types";
@@ -34,6 +37,9 @@ export const setupGameSocket = ({
   onTimerExpired,
   onSettingsUpdate,
   onChatMessage,
+  onPlayerReconnecting,
+  onPlayerReconnected,
+  onReactionReceived,
   onConnect,
   onDisconnect,
 }: {
@@ -60,19 +66,44 @@ export const setupGameSocket = ({
   onTimerExpired: () => void;
   onSettingsUpdate: (settings: { timerSettings: TimerSettings }) => void;
   onChatMessage: (message: ChatMessage) => void;
+  onPlayerReconnecting: (username: string, graceSeconds: number) => void;
+  onPlayerReconnected: (username: string) => void;
+  onReactionReceived: (message: ReactionMessage) => void;
   onConnect: () => void;
   onDisconnect: () => void;
 }) => {
+  const sessionStorageKey = localStorageKey(`session-${gameId}`);
+  const existingToken = localStorage.getItem(sessionStorageKey) ?? undefined;
+
   const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
     "/games",
     {
-      query: { gameId, username },
+      query: { gameId, username, sessionToken: existingToken },
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
     },
   );
 
   socket.on("connect", onConnect);
 
   socket.on("disconnect", onDisconnect);
+
+  socket.on("session.token", (token) => {
+    localStorage.setItem(sessionStorageKey, token);
+  });
+
+  socket.on("player.reconnecting", (reconnectingUsername, graceSeconds) => {
+    onPlayerReconnecting(reconnectingUsername, graceSeconds);
+  });
+
+  socket.on("player.reconnected", (reconnectedUsername) => {
+    onPlayerReconnected(reconnectedUsername);
+  });
+
+  socket.on("reaction.received", (message) => {
+    onReactionReceived(message);
+  });
 
   socket.on("game.infos.update", (game) => {
     onGameInfosUpdate(game);
@@ -215,6 +246,10 @@ export const setupGameSocket = ({
     socket.emit("chat.send", text);
   };
 
+  const sendReaction = (reaction: ReactionType) => {
+    socket.emit("reaction.send", reaction);
+  };
+
   return {
     socket,
     startGame,
@@ -232,5 +267,6 @@ export const setupGameSocket = ({
     moveCursor,
     updateSettings,
     sendChatMessage,
+    sendReaction,
   };
 };
