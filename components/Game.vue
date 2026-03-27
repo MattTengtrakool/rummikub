@@ -41,9 +41,12 @@
     <header class="bg-white/80 backdrop-blur-sm shadow-sm relative z-10">
       <nav class="flex gap-1.5 md:gap-2 px-2 py-2 md:px-4 md:py-2.5 items-center justify-between">
         <div class="flex items-center gap-2 md:gap-3 min-w-0">
-          <span v-if="game.gameInfos.value.state === 'created'" class="text-xs md:text-sm font-medium truncate">
-            {{ t("pages.game.invite_code") }}
-          </span>
+          <div v-if="game.gameInfos.value.state === 'created'" class="flex items-center gap-1.5">
+            <div class="size-6 rounded-full bg-separator flex items-center justify-center">
+              <UserCircleIcon class="size-4 text-body-text-disabled" />
+            </div>
+            <span class="text-xs md:text-sm font-medium truncate">{{ username }}</span>
+          </div>
           <template v-if="game.gameInfos.value.state === 'started'">
             <span
               v-if="game.selfPlayer.value.isPlaying"
@@ -188,7 +191,7 @@
   </main>
 </template>
 <script setup lang="ts">
-import { BookOpenIcon, ExclamationTriangleIcon, CheckIcon, ArrowRightStartOnRectangleIcon } from "@heroicons/vue/20/solid";
+import { BookOpenIcon, ExclamationTriangleIcon, CheckIcon, ArrowRightStartOnRectangleIcon, UserCircleIcon } from "@heroicons/vue/20/solid";
 import { ClipboardDocumentIcon } from "@heroicons/vue/20/solid";
 import GameRulesModal from "@/components/GameRulesModal.vue";
 
