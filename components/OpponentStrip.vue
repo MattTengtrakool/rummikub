@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import type { OpponentDto } from "@/app/WebSocket/infrastructure/types";
 
+const PLAYER_COLORS = [
+  "#ef4444", "#3b82f6", "#22c55e", "#f59e0b",
+  "#a855f7", "#ec4899", "#14b8a6", "#f97316",
+];
+
 const props = defineProps<{
   opponents: OpponentDto[];
   reconnectingPlayers?: Map<string, number>;
@@ -11,19 +16,15 @@ const MAX_VISIBLE_TILES = 14;
 <template>
   <div class="flex flex-nowrap gap-3 px-4 py-1.5 overflow-x-auto border-t border-separator/30">
     <div
-      v-for="opponent in opponents"
+      v-for="(opponent, i) in opponents"
       :key="opponent.username"
-      class="flex items-center gap-2 shrink-0 rounded-lg px-2 py-1 transition-colors"
-      :class="[opponent.isPlaying && 'bg-green-50/70']"
+      class="flex items-center gap-2 shrink-0 px-2 py-1"
     >
       <div class="flex items-center gap-1.5">
         <span
           class="size-2 rounded-full shrink-0"
-          :class="[
-            opponent.isPlaying ? 'bg-button-text-success' :
-            reconnectingPlayers?.has(opponent.username) ? 'bg-yellow-500 animate-pulse' :
-            'bg-gray-300'
-          ]"
+          :class="[reconnectingPlayers?.has(opponent.username) && 'animate-pulse']"
+          :style="{ backgroundColor: PLAYER_COLORS[i % PLAYER_COLORS.length] }"
         />
         <span class="text-xs font-medium whitespace-nowrap">
           {{ opponent.username }}

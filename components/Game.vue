@@ -51,7 +51,7 @@
             >
               {{ t("pages.game.your_turn") }}
             </span>
-            <span v-else class="text-xs md:text-sm text-body-text-disabled truncate">
+            <span v-else class="text-xs md:text-sm font-medium text-body-text bg-separator px-2 md:px-3 py-1 rounded-full whitespace-nowrap truncate">
               {{ t("pages.game.turn_of", { username: game.gameInfos.value.currentPlayerUsername }) }}
             </span>
           </template>

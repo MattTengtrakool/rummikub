@@ -21,7 +21,7 @@ const { t } = useI18n();
 <template>
   <div v-if="player" class="flex flex-wrap items-center gap-2 md:gap-2.5">
     <Button type="secondary" v-if="player.canUndoLastAction" @click="emit('undoLastAction')" class="min-h-[44px] min-w-[44px]">
-      <template #prefix><ArrowUturnLeftIcon class="size-3.5 opacity-50" /></template>
+      <template #prefix><ArrowUturnLeftIcon class="size-3.5" /></template>
       {{ t("undo") }}
     </Button>
 
@@ -31,7 +31,7 @@ const { t } = useI18n();
       @click="emit('cancelTurnModifications')"
       class="min-h-[44px] min-w-[44px]"
     >
-      <template #prefix><XMarkIcon class="size-3.5 opacity-50" /></template>
+      <template #prefix><XMarkIcon class="size-3.5" /></template>
       {{ t("cancel") }}
     </Button>
 

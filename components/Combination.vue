@@ -92,9 +92,8 @@ const handleDragStart = (e: { oldIndex: number }) => {
 </template>
 
 <style scoped>
-.combination-invalid :deep(.inline-flex) {
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.25);
-  border-radius: 0.375rem;
+.combination-invalid :deep(.inline-flex > div) {
+  border-color: rgba(239, 68, 68, 0.45);
 }
 
 :deep(.drag-ghost) {

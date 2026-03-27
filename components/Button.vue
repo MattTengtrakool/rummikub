@@ -45,7 +45,7 @@ const handleClick = (e: MouseEvent) => {
       'bg-button-bg-disabled text-button-text-disabled': disabled,
       'bg-body-text text-white hover:bg-black/80 shadow-sm hover:shadow-md active:scale-[0.97]': !disabled && type === 'filled',
       'bg-button-text-success text-white hover:bg-button-text-success/90 shadow-sm shadow-green-300/30 hover:shadow-md active:scale-[0.97]': !disabled && type === 'success',
-      'bg-transparent text-body-text-disabled hover:bg-black/5 active:scale-[0.97]': !disabled && type === 'secondary',
+      'bg-black/[0.04] text-body-text hover:bg-black/[0.08] active:scale-[0.97]': !disabled && type === 'secondary',
       'bg-button-bg shadow-sm active:scale-[0.97] text-button-text-danger': !disabled && type === 'danger',
       'bg-button-bg shadow-sm active:scale-[0.97] text-body-text': !disabled && type === 'primary',
     }"
