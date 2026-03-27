@@ -174,6 +174,8 @@
         @react="game.sendReaction($event)"
       />
 
+    <HeartsRain v-if="showHearts" :key="heartsKey" />
+
       <PlayerDeck
         :gameBoard="game.gameBoard.value"
         :player="game.selfPlayer.value"
@@ -211,6 +213,18 @@ function handleLeaveGame() {
   game.leaveGame();
   navigateTo("/");
 }
+
+const showHearts = ref(false);
+const heartsKey = ref(0);
+
+watch(() => game.feedEntries.value.length, () => {
+  const last = game.feedEntries.value[game.feedEntries.value.length - 1];
+  if (last?.type === "chat" && last.text.trim().toLowerCase() === "/elly") {
+    heartsKey.value++;
+    showHearts.value = true;
+    setTimeout(() => { showHearts.value = false; }, 13000);
+  }
+});
 
 const gameLink = computed(() => `${window.location.origin}/games/${params.id}`);
 const linkCopied = ref(false);
