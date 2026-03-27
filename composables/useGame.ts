@@ -221,9 +221,11 @@ export const useGame = (gameId: any, username: any) => {
     onPlayerDrawnCard(player) {
       const name = displayName(player);
       const count = player.cards.length;
+      const remaining = gameInfos.value?.drawStackCount;
+      const remainingSuffix = remaining != null ? ` (${remaining} left)` : "";
       if (timerForcedTurn) {
         timerForcedTurn = false;
-        logAction(t("toast.player_actions.timer_forced_draw", { name }));
+        logAction(t("toast.player_actions.timer_forced_draw", { name }) + remainingSuffix);
       } else {
         logAction(
           t(
@@ -233,7 +235,7 @@ export const useGame = (gameId: any, username: any) => {
               "toast.player_actions.drawn_card_3",
             ),
             { name, count },
-          ),
+          ) + remainingSuffix,
         );
       }
       if (player.id === selfPlayer.value?.id) {
@@ -272,7 +274,6 @@ export const useGame = (gameId: any, username: any) => {
     },
     onPlayerMovedCard(player, cardPosition) {
       if (player.id === selfPlayer.value?.id) {
-        play("card-place");
         return;
       }
       play("card-place-opponent", 0.4);
@@ -363,6 +364,7 @@ export const useGame = (gameId: any, username: any) => {
     moveCardAlone,
     moveCardToCombination,
     returnCardToHand,
+    onCardPlaced: () => play("card-place"),
   });
 
   return {

@@ -58,7 +58,7 @@ const handleDragStart = (e: { oldIndex: number }) => {
 </script>
 <template>
   <div
-    class="w-min flex flex-col items-center gap-1 p-2 px-4 transition-shadow duration-300"
+    class="w-min flex flex-col items-center gap-1 p-2 px-4 rounded-lg transition-all duration-300 hover:bg-black/[0.02]"
     :class="[combination.type === 'invalid' && 'combination-invalid']"
   >
     <Draggable
@@ -70,7 +70,9 @@ const handleDragStart = (e: { oldIndex: number }) => {
       :item-key="(card: CardDto) => toKey(card)"
       :delay="150"
       :delayOnTouchOnly="true"
-      :animation="200"
+      :animation="80"
+      ghost-class="drag-ghost"
+      drag-class="drag-active"
       @change="handleChange"
       @start="handleDragStart"
       @end="stopDragging"
@@ -91,6 +93,21 @@ const handleDragStart = (e: { oldIndex: number }) => {
 
 <style scoped>
 .combination-invalid :deep(.inline-flex) {
-  box-shadow: 0 0 6px rgba(239, 68, 68, 0.35);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.25);
+  border-radius: 0.375rem;
+}
+
+:deep(.drag-ghost) {
+  opacity: 0.4;
+  border: 2px dashed #b0aea8;
+  background: transparent;
+  border-radius: 0.375rem;
+  box-shadow: none;
+}
+
+:deep(.drag-active) {
+  opacity: 1 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 50;
 }
 </style>

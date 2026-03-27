@@ -16,14 +16,14 @@ export default {
         body: {
           text: "#000000",
           "text-disabled": "#868686",
-          bg: "#F3F3F3"
+          bg: "#F5F5F0"
         },
-        separator: "#E2E2E2",
+        separator: "#E8E5DF",
         card: {
           bg: "#FFFFFF",
-          border: "#E5E5E5",
+          border: "#E0DDD7",
           create: "#A0A0A0",
-          "bg-overlay-locked": "#EEEEEE",
+          "bg-overlay-locked": "#EDEBE7",
           "text-overlay-locked": "#6A6A6A",
           "text-red": "#DB2727",
           "text-blue": "#2070B9",
@@ -31,7 +31,7 @@ export default {
           "text-yellow": "#3F8415"
         },
         button: {
-          bg: "#FFFFFF",
+          bg: "#FAFAF8",
           "bg-disabled": "#FAFAFA",
           "text-disabled": "#868686",
           "text-success": "#3F8415",

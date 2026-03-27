@@ -25,10 +25,10 @@ const formattedTime = computed(() => {
 </script>
 <template>
   <div
-    class="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-xs font-bold transition-all"
+    class="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-xs font-bold shadow-sm transition-all tabular-nums"
     :class="{
-      'bg-red-100 text-red-600 animate-pulse': expired,
-      'bg-amber-100 text-amber-600': isWarning && !expired,
+      'bg-red-100 text-red-600 animate-pulse shadow-red-200/50': expired,
+      'bg-amber-100 text-amber-600 shadow-amber-200/50': isWarning && !expired,
       'bg-separator text-body-text': !isWarning && !expired,
     }"
   >

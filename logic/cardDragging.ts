@@ -14,6 +14,7 @@ export const makeCardDraggingHandler = ({
   moveCardAlone,
   moveCardToCombination,
   returnCardToHand,
+  onCardPlaced,
 }: {
   placeCardAlone(cardIndex: number): void;
   placeCardInCombination(
@@ -26,6 +27,7 @@ export const makeCardDraggingHandler = ({
     destination: CardPositionOnBoard
   ): void;
   returnCardToHand(source: CardPositionOnBoard): void;
+  onCardPlaced?: () => void;
 }) => {
   const source: CardPosition = {
     card: null,
@@ -61,6 +63,7 @@ export const makeCardDraggingHandler = ({
       destination.card === null &&
       destination.combination === null
     ) {
+      onCardPlaced?.();
       return placeCardAlone(source.card);
     }
 
@@ -70,6 +73,7 @@ export const makeCardDraggingHandler = ({
       destination.card !== null &&
       destination.combination !== null
     ) {
+      onCardPlaced?.();
       return placeCardInCombination(source.card, {
         cardIndex: destination.card,
         combinationIndex: destination.combination,
@@ -94,6 +98,7 @@ export const makeCardDraggingHandler = ({
       destination.card === null &&
       destination.combination === null
     ) {
+      onCardPlaced?.();
       return moveCardAlone({
         cardIndex: source.card,
         combinationIndex: source.combination,
@@ -106,6 +111,7 @@ export const makeCardDraggingHandler = ({
       destination.card !== null &&
       destination.combination !== null
     ) {
+      onCardPlaced?.();
       return moveCardToCombination(
         {
           cardIndex: source.card,

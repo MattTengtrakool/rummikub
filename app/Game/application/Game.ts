@@ -47,6 +47,7 @@ export type GameInfosDto = {
   state: GameState;
   isFull: boolean;
   playersCount: number;
+  drawStackCount: number;
   currentPlayerUsername?: string;
   winnerUsername?: string;
   endReason?: GameEndReason;
@@ -367,6 +368,7 @@ export class Game implements IGame {
       state: this.state,
       isFull: this.isFull(),
       playersCount: this.players.length,
+      drawStackCount: this.drawStack.toDto().cardCount,
       currentPlayerUsername:
         this.state === "started" ? this.currentPlayer().username : undefined,
       winnerUsername:

@@ -40,15 +40,14 @@ const handleClick = (e: MouseEvent) => {
     @click.prevent="handleClick"
     :type="href ? undefined : 'button'"
     :disabled="!href && disabled"
-    class="h-9 px-5 rounded-lg justify-center items-center gap-2 inline-flex transition-colors"
+    class="h-9 px-5 rounded-lg justify-center items-center gap-2 inline-flex transition-all duration-150"
     :class="{
       'bg-button-bg-disabled text-button-text-disabled': disabled,
-      'bg-body-text text-white hover:bg-black/80': !disabled && type === 'filled',
-      'bg-button-bg': !disabled && type !== 'filled',
-      'text-button-text-danger': !disabled && type === 'danger',
-      'text-button-text-success': !disabled && type === 'success',
-      'text-body-text':
-        !disabled && (type === 'primary' || type === 'secondary'),
+      'bg-body-text text-white hover:bg-black/80 shadow-sm hover:shadow-md active:scale-[0.97]': !disabled && type === 'filled',
+      'bg-button-text-success text-white hover:bg-button-text-success/90 shadow-sm shadow-green-300/30 hover:shadow-md active:scale-[0.97]': !disabled && type === 'success',
+      'bg-transparent text-body-text-disabled hover:bg-black/5 active:scale-[0.97]': !disabled && type === 'secondary',
+      'bg-button-bg shadow-sm active:scale-[0.97] text-button-text-danger': !disabled && type === 'danger',
+      'bg-button-bg shadow-sm active:scale-[0.97] text-body-text': !disabled && type === 'primary',
     }"
   >
     <slot name="prefix"></slot>

@@ -3,7 +3,7 @@
     <template v-if="expanded || !isMobile">
       <div
         ref="scrollContainer"
-        class="pointer-events-auto p-2 flex flex-col-reverse gap-1 text-xs font-medium overflow-y-auto"
+        class="pointer-events-auto p-2 flex flex-col-reverse gap-1 text-xs font-medium overflow-y-auto scrollbar-hide"
         :class="isMobile ? 'max-h-[40vh]' : 'max-h-24'"
         @scroll="onScroll"
       >
@@ -103,3 +103,13 @@ function send() {
   draft.value = "";
 }
 </script>
+
+<style scoped>
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+</style>

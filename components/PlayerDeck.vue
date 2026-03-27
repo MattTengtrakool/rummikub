@@ -217,9 +217,14 @@ const handleDragEnd = () => {
   stopDragging();
 };
 
+const hasVisibleActions = computed(() => {
+  const p = props.player;
+  return p.canDrawCard || p.canPass || p.canUndoLastAction || p.canCancelTurnModifications || p.canEndTurn;
+});
+
 </script>
 <template>
-  <div class="bg-body-bg border-t flex flex-col gap-1.5 px-2 py-1.5">
+  <div class="bg-[#F3F1EC] shadow-[0_-2px_8px_rgba(0,0,0,0.05)] flex flex-col gap-1.5 px-2 py-1.5 pb-3 relative z-10">
     <GameRuleReminder
       v-if="player.isPlaying && !player.hasStarted"
       :game-rule="'first_turn'"
@@ -236,6 +241,7 @@ const handleDragEnd = () => {
     <PlayerActions
       :player="player"
       :game="game"
+      
       @cancel-turn-modifications="emit('cancelTurnModifications')"
       @undo-last-action="emit('undoLastAction')"
       @draw-card="emit('drawCard')"
@@ -263,6 +269,8 @@ const handleDragEnd = () => {
           :preventOnFilter="false"
           :delay="150"
           :delayOnTouchOnly="true"
+          ghost-class="drag-ghost"
+          drag-class="drag-active"
           @change="handleChange"
           @start="(e: any) => handleDragStart(e, rowIndex)"
           @end="handleDragEnd"
@@ -294,8 +302,9 @@ const handleDragEnd = () => {
 <style scoped>
 .hand-row {
   min-height: 3rem;
-  border-radius: 0.375rem;
-  background: #EBEBEB;
+  border-radius: 0.5rem;
+  background: #EAE8E3;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
   padding: 0.25rem;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -331,5 +340,19 @@ const handleDragEnd = () => {
     width: 1.25rem;
     height: 4rem;
   }
+}
+
+.drag-ghost {
+  opacity: 0.4;
+  border: 2px dashed #b0aea8;
+  background: transparent;
+  border-radius: 0.375rem;
+  box-shadow: none;
+}
+
+.drag-active {
+  opacity: 1 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 50;
 }
 </style>

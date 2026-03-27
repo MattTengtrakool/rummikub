@@ -32,11 +32,11 @@
 
     <div class="mt-auto flex flex-col items-center gap-3">
       <div class="relative flex items-end">
-        <Card class="-rotate-12 -mr-1" color="red" :number="7" />
-        <Card class="mb-1" color="black" :number="0" />
-        <Card class="rotate-12 -ml-1" color="blue" :number="7" />
+        <Card class="-rotate-12 -mr-1 shadow-md hover:rotate-[-14deg] transition-transform" color="red" :number="7" />
+        <Card class="mb-1 shadow-lg" color="black" :number="0" />
+        <Card class="rotate-12 -ml-1 shadow-md hover:rotate-[14deg] transition-transform" color="blue" :number="7" />
       </div>
-      <h1 class="text-4xl font-bold tracking-tight">Rummikub</h1>
+      <h1 class="text-4xl font-bold tracking-tight text-balance">Rummikub</h1>
       <button
         @click="modal.open(GameRulesModal)"
         class="text-xs text-body-text-disabled hover:text-body-text transition-colors flex items-center gap-1.5"
@@ -59,7 +59,7 @@
 
       <div class="flex gap-2 items-center w-full">
         <div class="h-px bg-separator grow" />
-        <span class="text-xs text-body-text-disabled">{{ t("pages.home.or") }}</span>
+        <span class="text-xs font-medium text-body-text-disabled/70 uppercase tracking-wider">{{ t("pages.home.or") }}</span>
         <div class="h-px bg-separator grow" />
       </div>
 

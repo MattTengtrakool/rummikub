@@ -20,6 +20,12 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
+const { draggingCard } = useDraggingCard();
+
+watchEffect(() => {
+  if (typeof document === 'undefined') return;
+  document.documentElement.style.cursor = draggingCard.value ? 'grabbing' : '';
+});
 
 const dragHintOpen = ref(false);
 </script>
@@ -27,8 +33,8 @@ const dragHintOpen = ref(false);
   <div
     @click="dragHintOpen=true"
     @mousedown="dragHintOpen = false"
-    class="border border-card-border relative overflow-hidden select-none w-10 h-12 md:w-12 md:h-16 bg-card-bg rounded flex-col justify-center items-center gap-1 inline-flex transition-opacity duration-200"
-    :class="[movable && 'hover:shadow-lg cursor-move', highlighted && 'ring-4', dimmed && 'opacity-25 border-dashed', animate && 'card-enter']"
+    class="border border-card-border border-t-white/80 relative overflow-hidden select-none w-10 h-12 md:w-12 md:h-16 bg-card-bg rounded-md shadow-sm flex-col justify-center items-center gap-1 inline-flex transition-all duration-200"
+    :class="[movable && !draggingCard && 'cursor-grab', movable && !draggingCard && 'hover:-translate-y-0.5 hover:shadow-md', dimmed && 'opacity-25 border-dashed shadow-none', animate && 'card-enter']"
   >
     <template v-if="isJokerNumber(number)">
       <BlackJokerSymbol

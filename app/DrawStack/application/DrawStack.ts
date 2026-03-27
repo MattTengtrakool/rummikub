@@ -63,6 +63,7 @@ export class DrawStack implements IDrawStack {
   toDto(): DrawStackDto {
     return {
       isEmpty: this.isEmpty(),
+      cardCount: this.cards.length,
     };
   }
 }

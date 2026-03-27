@@ -148,7 +148,7 @@ const contentStyle = computed(() => zoom.transformStyle.value);
 <template>
   <div
     ref="boardRef"
-    class="bg-body-bg overflow-hidden flex-1 relative"
+    class="board-surface overflow-hidden flex-1 relative shadow-inner"
     style="touch-action: none;"
     @mousemove="handleMouseMove"
     @mouseleave="handleMouseLeave"
@@ -237,3 +237,10 @@ const contentStyle = computed(() => zoom.transformStyle.value);
   </div>
 </template>
 
+<style scoped>
+.board-surface {
+  background-color: #EFEDE8;
+  background-image: radial-gradient(circle, #D5D3CE 0.75px, transparent 0.75px);
+  background-size: 24px 24px;
+}
+</style>

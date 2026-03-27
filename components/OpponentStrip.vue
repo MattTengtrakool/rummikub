@@ -9,11 +9,12 @@ const props = defineProps<{
 const MAX_VISIBLE_TILES = 14;
 </script>
 <template>
-  <div class="flex flex-nowrap gap-3 px-4 py-2 border-b bg-body-bg overflow-x-auto">
+  <div class="flex flex-nowrap gap-3 px-4 py-1.5 overflow-x-auto border-t border-separator/30">
     <div
       v-for="opponent in opponents"
       :key="opponent.username"
-      class="flex items-center gap-2 shrink-0"
+      class="flex items-center gap-2 shrink-0 rounded-lg px-2 py-1 transition-colors"
+      :class="[opponent.isPlaying && 'bg-green-50/70']"
     >
       <div class="flex items-center gap-1.5">
         <span
