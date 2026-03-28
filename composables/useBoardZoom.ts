@@ -200,6 +200,63 @@ export const useBoardZoom = () => {
     }
   };
 
+  const smoothPanning = ref(false);
+
+  const smoothFitToScreen = (
+    containerEl: HTMLElement | null,
+    contentBounds: { x: number; y: number; width: number; height: number } | null,
+  ) => {
+    smoothPanning.value = true;
+    fitToScreen(containerEl, contentBounds);
+    setTimeout(() => {
+      smoothPanning.value = false;
+    }, 400);
+  };
+
+  const isPositionInView = (
+    boardX: number,
+    boardY: number,
+    cellW: number,
+    cellH: number,
+    containerEl: HTMLElement | null,
+  ): boolean => {
+    if (!containerEl) return true;
+    const rect = containerEl.getBoundingClientRect();
+    const margin = 40;
+
+    const screenX = boardX * cellW * scale.value + translateX.value;
+    const screenY = boardY * cellH * scale.value + translateY.value;
+
+    return (
+      screenX >= margin &&
+      screenX <= rect.width - margin &&
+      screenY >= margin &&
+      screenY <= rect.height - margin
+    );
+  };
+
+  const panTo = (
+    boardX: number,
+    boardY: number,
+    cellW: number,
+    cellH: number,
+    containerEl: HTMLElement | null,
+  ) => {
+    if (!containerEl) return;
+    const rect = containerEl.getBoundingClientRect();
+
+    const targetScreenX = rect.width / 2;
+    const targetScreenY = rect.height / 2;
+
+    smoothPanning.value = true;
+    translateX.value = targetScreenX - boardX * cellW * scale.value;
+    translateY.value = targetScreenY - boardY * cellH * scale.value;
+
+    setTimeout(() => {
+      smoothPanning.value = false;
+    }, 400);
+  };
+
   const transformStyle = computed(() =>
     `transform: scale(${scale.value}) translate(${translateX.value / scale.value}px, ${translateY.value / scale.value}px); transform-origin: 0 0;`
   );
@@ -209,10 +266,14 @@ export const useBoardZoom = () => {
     translateX,
     translateY,
     transformStyle,
+    smoothPanning,
     zoomIn,
     zoomOut,
     resetZoom,
     fitToScreen,
+    smoothFitToScreen,
+    isPositionInView,
+    panTo,
     onWheel,
     onPointerDown,
     onPointerMove,

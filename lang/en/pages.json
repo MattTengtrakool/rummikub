@@ -3,6 +3,7 @@
         "username": "Username",
         "set_username": "Set name",
         "create_game": "Create a game",
+        "play_vs_ai": "Play vs AI",
         "join_game": "Join game",
         "code_join_game": "Game code",
         "or": "Or",
@@ -33,6 +34,9 @@
         },
         "leave_game_confirm": "Are you sure you want to leave? This will end the game for everyone.",
         "connected_usernames": "{n} person connected | {n} people connected",
+        "you": "You",
+        "draw_pile": "Draw pile",
+        "draw_pile_left": "{n} left in pile",
         "your_turn": "Your turn",
         "turn_of": "{username}'s turn",
         "timer": {

@@ -428,8 +428,8 @@ const resolveOverlaps = (row: number) => {
 <template>
   <div
     data-player-deck
-    class="bg-[#F3F1EC] shadow-[0_-2px_8px_rgba(0,0,0,0.05)] flex flex-col gap-1.5 px-2 py-1.5 relative z-10"
-    style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom));"
+    class="bg-[#F3F1EC] shadow-[0_-2px_8px_rgba(0,0,0,0.05)] flex flex-col gap-0.5 px-2 pt-1.5 pb-0.5 relative z-10"
+    style="padding-bottom: max(0.25rem, env(safe-area-inset-bottom));"
   >
     <GameRuleReminder
       v-if="player.isPlaying && !player.hasStarted"

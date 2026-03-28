@@ -90,7 +90,7 @@ function onPointerUp() {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 12px 0;
+  padding: 6px 0;
   cursor: ns-resize;
   user-select: none;
 }

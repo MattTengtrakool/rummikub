@@ -1,3 +1,4 @@
+import type { AIDifficulty } from "@/app/AI/domain/types";
 import type { CardDto } from "@/app/Card/domain/dtos/card";
 import type { CardListDto } from "@/app/Card/domain/dtos/cardList";
 import { canStartWithPoints } from "@/app/Combination/domain/gamerules/canStartWith";
@@ -22,6 +23,8 @@ export interface IPlayer {
   admin: boolean;
   id: PlayerId;
   username: string;
+  readonly isAI: boolean;
+  readonly aiDifficulty?: AIDifficulty;
   drawStartupCards(): void;
   beginTurn(): void;
   drawCard(): void;
@@ -60,6 +63,8 @@ export type PlayerProps = {
   hasStarted?: boolean;
   username?: string;
   admin?: boolean;
+  isAI?: boolean;
+  aiDifficulty?: AIDifficulty;
 };
 
 export class Player implements IPlayer {
@@ -69,6 +74,8 @@ export class Player implements IPlayer {
 
   public readonly id: PlayerId;
   public readonly username: string;
+  public readonly isAI: boolean;
+  public readonly aiDifficulty?: AIDifficulty;
   public admin: boolean;
 
   private cards: CardListDto;
@@ -91,6 +98,8 @@ export class Player implements IPlayer {
     this.hasStarted = props.hasStarted ?? false;
     this.username = props.username ?? generate(1)[0];
     this.admin = props.admin ?? false;
+    this.isAI = props.isAI ?? false;
+    this.aiDifficulty = props.aiDifficulty;
 
     this.saveTurnCards();
   }
@@ -318,6 +327,8 @@ export class Player implements IPlayer {
       canUndoLastAction: this.canUndoLastAction(),
       canEndTurn: this.canEndTurn(),
       handValue: this.handValue(),
+      isAI: this.isAI,
+      aiDifficulty: this.aiDifficulty,
     };
   }
 }

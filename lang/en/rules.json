@@ -1,6 +1,12 @@
 {
     "title": "Rummikub Rules",
     "see_details": "See the \"{0}\" rule in detail",
+    "section": {
+        "basics": "Basics",
+        "tiles": "Tiles",
+        "combinations": "Combinations",
+        "gameplay": "Gameplay"
+    },
     "purpose": {
         "title": "Goal of the game",
         "content": "The goal of the game is to place all your tiles on the table by creating combinations."

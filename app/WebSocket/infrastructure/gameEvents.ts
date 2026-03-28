@@ -1,3 +1,4 @@
+import { executeAITurn } from "@/app/AI/application/AITurnExecutor";
 import type { GameId, IGame } from "@/app/Game/application/Game";
 import { RECONNECT_GRACE_SECONDS, type IGameManager } from "@/app/Game/application/GameManager";
 import type { IPlayer } from "@/app/Player/application/Player";
@@ -62,10 +63,7 @@ export const registerGameEvents = ({
           io.to(gameRoom(game)).emit("player.passed", current.toDto());
         }
 
-        if (game.isStarted()) {
-          emitTimerStart(game);
-          startTurnTimer(game);
-        }
+        handlePostTurnTransition(game);
       } catch (e) {
         console.error("Timer expiry error:", e);
       }
@@ -98,6 +96,8 @@ export const registerGameEvents = ({
           cardCount: p.cards.length,
           isPlaying: p.isPlaying,
           hasStarted: p.hasStarted,
+          isAI: p.isAI,
+          aiDifficulty: p.aiDifficulty,
         }));
       io.to(playerRoom(game, player)).emit("opponents.update", opponents);
     });
@@ -110,6 +110,67 @@ export const registerGameEvents = ({
       "connectedUsernames.update",
       gameManager.usernames(game.id),
     );
+  };
+
+  const activeAITurns = new Set<GameId>();
+
+  const checkAndRunAITurn = (game: IGame) => {
+    if (!game.isStarted()) return;
+    if (activeAITurns.has(game.id)) return;
+
+    let currentPlayer: IPlayer;
+    try {
+      currentPlayer = game.currentPlayer();
+    } catch {
+      return;
+    }
+
+    if (!currentPlayer.isAI) return;
+
+    activeAITurns.add(game.id);
+
+    const boardTiles = game.toDto().gameBoard.tiles;
+
+    executeAITurn(currentPlayer, game, boardTiles, {
+      onMoveExecuted: (position) => {
+        emitGameUpdate(game);
+        const dto = currentPlayer.toDto();
+        io.to(gameRoom(game)).emit("player.movedCard", dto, position);
+      },
+      onTurnComplete: () => {
+        activeAITurns.delete(game.id);
+        emitGameUpdate(game);
+
+        const dto = currentPlayer.toDto();
+        if (dto.hasDrawnThisTurn) {
+          io.to(gameRoom(game)).emit("player.drawnCard", dto);
+        } else if (game.isEnded()) {
+          io.to(gameRoom(game)).emit("player.played", dto);
+          clearTurnTimer(game.id);
+        } else {
+          io.to(gameRoom(game)).emit("player.played", dto);
+        }
+
+        if (game.isStarted()) {
+          emitTimerStart(game);
+          startTurnTimer(game);
+          checkAndRunAITurn(game);
+        }
+      },
+    }).catch((e) => {
+      console.error("AI turn execution error:", e);
+      activeAITurns.delete(game.id);
+    });
+  };
+
+  const handlePostTurnTransition = (game: IGame) => {
+    if (game.isStarted()) {
+      emitTimerStart(game);
+      startTurnTimer(game);
+      checkAndRunAITurn(game);
+    } else {
+      clearTurnTimer(game.id);
+    }
   };
 
   const bindEventsToSocket = ({
@@ -154,8 +215,7 @@ export const registerGameEvents = ({
 
       game.start();
       emitGameUpdate(game);
-      emitTimerStart(game);
-      startTurnTimer(game);
+      handlePostTurnTransition(game);
     });
 
     socket.on("game.updateSettings", (settings) => {
@@ -217,13 +277,7 @@ export const registerGameEvents = ({
       player.drawCard();
       emitGameUpdate(game);
       io.to(gameRoom(game)).emit("player.drawnCard", player.toDto());
-
-      if (game.isStarted()) {
-        emitTimerStart(game);
-        startTurnTimer(game);
-      } else {
-        clearTurnTimer(game.id);
-      }
+      handlePostTurnTransition(game);
     });
 
     socket.on("player.endTurn", () => {
@@ -234,13 +288,7 @@ export const registerGameEvents = ({
       player.endTurn();
       emitGameUpdate(game);
       io.to(gameRoom(game)).emit("player.played", player.toDto());
-
-      if (game.isStarted()) {
-        emitTimerStart(game);
-        startTurnTimer(game);
-      } else {
-        clearTurnTimer(game.id);
-      }
+      handlePostTurnTransition(game);
     });
 
     socket.on("player.pass", () => {
@@ -251,13 +299,7 @@ export const registerGameEvents = ({
       player.pass();
       emitGameUpdate(game);
       io.to(gameRoom(game)).emit("player.passed", player.toDto());
-
-      if (game.isStarted()) {
-        emitTimerStart(game);
-        startTurnTimer(game);
-      } else {
-        clearTurnTimer(game.id);
-      }
+      handlePostTurnTransition(game);
     });
 
     socket.on("player.placeCard", (cardIndex, position) => {
@@ -354,6 +396,12 @@ export const registerGameEvents = ({
 
       if (isReconnect) {
         io.to(gameRoom(game)).emit("player.reconnected", username);
+      }
+
+      if (!isReconnect && game.isAIGame() && game.canStart()) {
+        game.start();
+        emitGameUpdate(game);
+        handlePostTurnTransition(game);
       }
     } catch (e) {
       console.error(e);

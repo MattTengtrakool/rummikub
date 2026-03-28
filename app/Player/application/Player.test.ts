@@ -353,6 +353,8 @@ describe("Player", () => {
         canEndTurn: false,
         canPass: false,
         handValue: 3,
+        isAI: false,
+        aiDifficulty: undefined,
       });
     });
   });

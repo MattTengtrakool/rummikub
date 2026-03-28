@@ -219,11 +219,9 @@ export const useGame = (gameId: any, username: any) => {
     onPlayerDrawnCard(player) {
       const name = displayName(player);
       const count = player.cards.length;
-      const remaining = gameInfos.value?.drawStackCount;
-      const remainingSuffix = remaining != null ? ` (${remaining} left)` : "";
       if (timerForcedTurn) {
         timerForcedTurn = false;
-        logAction(t("toast.player_actions.timer_forced_draw", { name }) + remainingSuffix);
+        logAction(t("toast.player_actions.timer_forced_draw", { name }));
       } else {
         logAction(
           t(
@@ -233,7 +231,7 @@ export const useGame = (gameId: any, username: any) => {
               "toast.player_actions.drawn_card_3",
             ),
             { name, count },
-          ) + remainingSuffix,
+          ),
         );
       }
       if (player.id === selfPlayer.value?.id) {
@@ -385,8 +383,8 @@ export const useGame = (gameId: any, username: any) => {
     cancelTurnModifications,
     undoLastAction,
     drawCard,
-    endTurn,
-    pass,
+    endTurn: () => { play("button-click", 0.4); endTurn(); },
+    pass: () => { play("button-click", 0.4); pass(); },
     moveCursor,
     updateSettings,
     sendChatMessage,

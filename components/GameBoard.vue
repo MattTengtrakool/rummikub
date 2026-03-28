@@ -192,6 +192,29 @@ const cursorEntries = computed(() => {
 });
 
 
+watch(
+  () => props.highlightedCard,
+  (pos) => {
+    if (!pos || props.player.isPlaying) return;
+    if (zoom.isPositionInView(pos.x, pos.y, cellW.value, cellH.value, boardRef.value)) return;
+
+    const tiles = props.gameBoard.tiles;
+    if (tiles.length === 0) return;
+
+    const minX = Math.min(...tiles.map((t) => t.x));
+    const minY = Math.min(...tiles.map((t) => t.y));
+    const maxX = Math.max(...tiles.map((t) => t.x));
+    const maxY = Math.max(...tiles.map((t) => t.y));
+
+    zoom.smoothFitToScreen(boardRef.value, {
+      x: minX * cellW.value,
+      y: minY * cellH.value,
+      width: (maxX - minX + 1) * cellW.value,
+      height: (maxY - minY + 1) * cellH.value,
+    });
+  },
+);
+
 const isHighlighted = (tile: { x: number; y: number }) => {
   if (!props.highlightedCard) return false;
   return (
@@ -268,6 +291,21 @@ const recentlyPlaced = ref(new Set<string>());
 
 const tileKey = (tile: { card: { color: string; number: number; duplicata: number } }) =>
   `${tile.card.color}-${tile.card.number}-${tile.card.duplicata}`;
+
+const turnStartTileKeys = ref(new Set<string>());
+
+watch(
+  () => props.player.isPlaying,
+  (playing) => {
+    if (playing) {
+      turnStartTileKeys.value = new Set(props.gameBoard.tiles.map(tileKey));
+    }
+  },
+  { immediate: true },
+);
+
+const wasOnBoardBeforeTurn = (tile: PlacedTileDto) =>
+  turnStartTileKeys.value.has(tileKey(tile));
 
 watch(
   () => props.gameBoard.tiles,
@@ -363,6 +401,7 @@ onUnmounted(() => {
     <div
       ref="contentRef"
       class="relative min-w-full min-h-full will-change-transform"
+      :class="{ 'smooth-pan': zoom.smoothPanning.value }"
       :style="contentStyleStr + `; width: ${contentDimensions.width}; height: ${contentDimensions.height};`"
     >
       <!-- Invalid combination outlines -->
@@ -415,6 +454,7 @@ onUnmounted(() => {
           :color="tile.card.color"
           :number="tile.card.number"
           :movable="player.isPlaying && (player.canMoveCard || player.canReturnCard)"
+          :locked="player.isPlaying && !player.hasStarted && wasOnBoardBeforeTurn(tile)"
           :highlighted="isHighlighted(tile)"
           :dimmed="isOpponentDragging(tile)"
           :animate="recentlyPlaced.has(tileKey(tile))"
@@ -508,6 +548,10 @@ onUnmounted(() => {
 
 .snap-preview {
   /* No position transition — snaps instantly to the computed grid slot */
+}
+
+.smooth-pan {
+  transition: transform 350ms ease-out;
 }
 
 .drag-clone {

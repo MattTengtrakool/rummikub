@@ -1,3 +1,4 @@
+import type { AIDifficulty } from "@/app/AI/domain/types";
 import type { CardListDto } from "@/app/Card/domain/dtos/cardList";
 
 export type PlayerId = string;
@@ -22,4 +23,6 @@ export type PlayerDto = {
   canUndoLastAction: boolean;
   canEndTurn: boolean;
   handValue: number;
+  isAI: boolean;
+  aiDifficulty?: AIDifficulty;
 };

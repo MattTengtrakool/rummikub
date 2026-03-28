@@ -93,12 +93,12 @@ export class GameManager implements IGameManager {
 
   usernames(gameId: GameId): Record<string, boolean> {
     const game = this.gameRepository.findById(gameId);
-    const playerUsernames = game.toDto().players.map((p) => p.username);
+    const players = game.toDto().players;
 
     return Object.fromEntries(
-      playerUsernames.map((username) => [
-        username,
-        this.isConnected({ gameId, username }),
+      players.map((p) => [
+        p.username,
+        p.isAI || this.isConnected({ gameId, username: p.username }),
       ]),
     );
   }

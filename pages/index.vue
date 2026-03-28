@@ -47,15 +47,27 @@
     </div>
 
     <div class="mt-12 mb-auto w-full max-w-xs flex flex-col items-center gap-5">
-      <Button
-        class="w-full"
-        href="/games/create"
-        target="_parent"
-        no-prefetch
-        type="filled"
-      >
-        {{ t("pages.home.create_game") }}
-      </Button>
+      <div class="flex gap-2 w-full">
+        <Button
+          class="flex-1"
+          href="/games/create"
+          target="_parent"
+          no-prefetch
+          type="filled"
+        >
+          {{ t("pages.home.create_game") }}
+        </Button>
+        <Button
+          class="flex-1"
+          type="secondary"
+          @click="modal.open(AIDifficultyModal)"
+        >
+          <template #prefix>
+            <CpuChipIcon class="size-4" />
+          </template>
+          {{ t("pages.home.play_vs_ai") }}
+        </Button>
+      </div>
 
       <div class="flex gap-2 items-center w-full">
         <div class="h-px bg-separator grow" />
@@ -86,7 +98,9 @@
 import { useLightMode } from "@/composables/useLightMode";
 import { BookOpenIcon } from "@heroicons/vue/20/solid";
 import { UserCircleIcon } from "@heroicons/vue/20/solid";
+import { CpuChipIcon } from "@heroicons/vue/20/solid";
 import GameRulesModal from "@/components/GameRulesModal.vue";
+import AIDifficultyModal from "@/components/AIDifficultyModal.vue";
 
 const modal = useModal();
 const { username } = useUsername();

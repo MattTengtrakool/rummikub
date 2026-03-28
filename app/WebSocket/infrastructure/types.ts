@@ -1,3 +1,4 @@
+import type { AIDifficulty } from "@/app/AI/domain/types";
 import type { CardColor, CardNumber } from "@/app/Card/domain/dtos/card";
 import type { GameInfosDto, TimerSettings } from "@/app/Game/application/Game";
 import type { BoardPosition } from "@/app/GameBoard/domain/dtos/gameBoard";
@@ -12,6 +13,8 @@ export type OpponentDto = {
   cardCount: number;
   isPlaying: boolean;
   hasStarted: boolean;
+  isAI: boolean;
+  aiDifficulty?: AIDifficulty;
 };
 
 export type ChatMessage = {

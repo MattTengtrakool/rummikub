@@ -1,4 +1,8 @@
 import {
+  type AIDifficulty,
+  AI_USERNAMES,
+} from "@/app/AI/domain/types";
+import {
   DrawStack,
   type IDrawStack
 } from "@/app/DrawStack/application/DrawStack";
@@ -52,6 +56,8 @@ export type GameInfosDto = {
   winnerUsername?: string;
   endReason?: GameEndReason;
   timerSettings: TimerSettings;
+  isAIGame: boolean;
+  aiDifficulty?: AIDifficulty;
 };
 
 type AddPlayerProps = {
@@ -63,6 +69,8 @@ export interface IGame {
   timerSettings: TimerSettings;
 
   addPlayer(props?: AddPlayerProps, PlayerClass?: IPlayerFactory): IPlayer;
+
+  addAIPlayer(difficulty: AIDifficulty): IPlayer;
 
   findPlayerByUsername(username: string): IPlayer;
 
@@ -99,6 +107,8 @@ export interface IGame {
   isStarted(): boolean;
 
   isEnded(): boolean;
+
+  isAIGame(): boolean;
 
   toDto(): GameDto;
 
@@ -159,7 +169,7 @@ export class Game implements IGame {
       throw new Error("Max players limit reached");
     }
 
-    const admin = this.players.length === 0;
+    const admin = this.players.length === 0 || !this.players.some(p => p.admin);
     const player = new (PlayerClass ?? Player)({
       game: this,
       drawStack: this.drawStack,
@@ -171,6 +181,18 @@ export class Game implements IGame {
 
     this.players.push(player);
 
+    return player;
+  }
+
+  addAIPlayer(difficulty: AIDifficulty): IPlayer {
+    const player = this.addPlayer({
+      username: AI_USERNAMES[difficulty],
+    }, class AIPlayer extends Player {
+      constructor(props: any) {
+        super({ ...props, isAI: true, aiDifficulty: difficulty });
+      }
+    });
+    player.admin = false;
     return player;
   }
 
@@ -291,8 +313,6 @@ export class Game implements IGame {
       throw new Error("Game has not started");
     }
 
-    console.log(this.players);
-
     const player = this.players.find((player) => player.isPlaying());
 
     if (!player) {
@@ -343,6 +363,10 @@ export class Game implements IGame {
     return this.state === "created" && !this.isFull();
   }
 
+  isAIGame(): boolean {
+    return this.players.some((player) => player.isAI);
+  }
+
   isStarted(): boolean {
     return this.state === "started";
   }
@@ -375,6 +399,8 @@ export class Game implements IGame {
         this.state === "ended" ? this.winner()?.username : undefined,
       endReason: this.endReason,
       timerSettings: this.timerSettings,
+      isAIGame: this.isAIGame(),
+      aiDifficulty: this.players.find((p) => p.isAI)?.aiDifficulty,
     };
   }
 }
