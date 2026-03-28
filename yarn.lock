@@ -5961,6 +5961,13 @@ globby@14.0.2, globby@^14.0.1, globby@^14.0.2:
     slash "^5.1.0"
     unicorn-magic "^0.1.0"
 
+glpk.js@^5.0.0:
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/glpk.js/-/glpk.js-5.0.0.tgz#e04a35d3d342ac5f17cb45b183822e4eee77739c"
+  integrity sha512-ni6nVv/EZVLs4dbN13Vy/H9pDTCjhB9oTlJ7tYi3e7zT6GCunUZJ0DuwCaJhmNc25sQUm6Ra18VaaMY8/fMWWw==
+  dependencies:
+    pako "^2.1.0"
+
 gopd@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/gopd/-/gopd-1.0.1.tgz#29ff76de69dac7489b7c0918a5788e56477c332c"
@@ -7911,6 +7918,11 @@ package-manager-detector@^0.2.0:
   version "0.2.0"
   resolved "https://registry.yarnpkg.com/package-manager-detector/-/package-manager-detector-0.2.0.tgz#160395cd5809181f5a047222319262b8c2d8aaea"
   integrity sha512-E385OSk9qDcXhcM9LNSe4sdhx8a9mAPrZ4sMLW+tmxl5ZuGtPUcdFu+MPP2jbgiWAZ6Pfe5soGFMd+0Db5Vrog==
+
+pako@^2.1.0:
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/pako/-/pako-2.1.0.tgz#266cc37f98c7d883545d11335c00fbd4062c9a86"
+  integrity sha512-w+eufiZ1WuJYgPXbV/PO3NCMEc3xqylkKHzp8bxp1uW4qaSNQUkwmLLEc3kKsfz8lpV1F8Ht3U1Cm+9Srog2ug==
 
 parent-module@^1.0.0:
   version "1.0.1"

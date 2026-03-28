@@ -137,6 +137,17 @@ export const registerGameEvents = ({
         const dto = currentPlayer.toDto();
         io.to(gameRoom(game)).emit("player.movedCard", dto, position);
       },
+      onDiagnose: () => {
+        const gb = game.toDto().gameBoard;
+        const invalid = gb.combinations.filter((c) => c.type === "invalid");
+        if (invalid.length > 0) {
+          console.log(`[AI-DIAG] ${invalid.length} invalid combo(s) on board:`);
+          for (const c of invalid) {
+            const desc = c.tiles.map((t) => `${t.card.color[0]}${t.card.number}@(${t.x},${t.y})`).join(", ");
+            console.log(`[AI-DIAG]   [${desc}]`);
+          }
+        }
+      },
       onTurnComplete: () => {
         activeAITurns.delete(game.id);
         emitGameUpdate(game);

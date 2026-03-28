@@ -43,6 +43,8 @@ export interface IGameBoard {
 
   isValid(): boolean;
 
+  diagnoseBoardValidity(): void;
+
   turnPoints(): number;
 
   endTurn(): void;
@@ -104,6 +106,7 @@ export class GameBoard implements IGameBoard {
       shiftTilesForInsertion(snapped, this.tiles);
 
       if (hasCollision(snapped, this.tiles)) {
+        console.log(`[BOARD] placeCard FAILED: ${card.color[0]}${card.number} at (${snapped.x},${snapped.y}) still occupied after shift`);
         throw new Error("Position is occupied");
       }
     }
@@ -114,7 +117,13 @@ export class GameBoard implements IGameBoard {
 
   moveCard(from: BoardPosition, to: BoardPosition): BoardPosition {
     const idx = findTileIndex(this.tiles, from);
-    if (idx === -1) throw new Error("No tile at source position");
+    if (idx === -1) {
+      const nearby = this.tiles
+        .filter((t) => Math.abs(t.x - from.x) < 2 && Math.abs(t.y - from.y) < 2)
+        .map((t) => `${t.card.color[0]}${t.card.number}@(${t.x},${t.y})`);
+      console.log(`[BOARD] moveCard FAILED: no tile at (${from.x},${from.y}). Nearby: ${nearby.join(", ") || "none"}`);
+      throw new Error("No tile at source position");
+    }
 
     const card = this.tiles[idx].card;
     this.tiles.splice(idx, 1);
@@ -125,6 +134,7 @@ export class GameBoard implements IGameBoard {
       shiftTilesForInsertion(snapped, this.tiles);
 
       if (hasCollision(snapped, this.tiles)) {
+        console.log(`[BOARD] moveCard FAILED: ${card.color[0]}${card.number} (${from.x},${from.y})→(${snapped.x},${snapped.y}) dest still occupied`);
         this.tiles.push({ x: from.x, y: from.y, card });
         throw new Error("Destination is occupied");
       }
@@ -220,6 +230,20 @@ export class GameBoard implements IGameBoard {
     if (this.tiles.length === 0) return true;
     const combos = detectCombinations(this.tiles);
     return combos.every((c) => c.type !== "invalid");
+  }
+
+  diagnoseBoardValidity(): void {
+    const combos = detectCombinations(this.tiles);
+    const invalid = combos.filter((c) => c.type === "invalid");
+    if (invalid.length > 0) {
+      console.log(`[BOARD] ${invalid.length} invalid combo(s):`);
+      for (const c of invalid) {
+        const desc = c.tiles.map((t) => `${t.card.color[0]}${t.card.number}@(${t.x},${t.y})`).join(", ");
+        console.log(`[BOARD]   invalid: [${desc}]`);
+      }
+    } else {
+      console.log(`[BOARD] all ${combos.length} combos valid`);
+    }
   }
 
   turnPoints(): number {

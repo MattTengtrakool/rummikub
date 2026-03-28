@@ -15,25 +15,26 @@ function randomBetween(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function computeAITurn(
+async function computeAITurn(
   difficulty: AIDifficulty,
   handCards: ReadonlyArray<any>,
   boardTiles: ReadonlyArray<PlacedTileDto>,
   hasStarted: boolean,
-): AITurnResult {
+): Promise<AITurnResult> {
   switch (difficulty) {
     case "easy":
       return easyStrategy(handCards, boardTiles, hasStarted);
     case "medium":
-      return mediumStrategy(handCards, boardTiles, hasStarted);
+      return await mediumStrategy(handCards, boardTiles, hasStarted);
     case "hard":
-      return hardStrategy(handCards, boardTiles, hasStarted);
+      return await hardStrategy(handCards, boardTiles, hasStarted);
   }
 }
 
 export type AITurnCallbacks = {
   onMoveExecuted: (position: { x: number; y: number }) => void;
   onTurnComplete: () => void;
+  onDiagnose?: () => void;
 };
 
 /**
@@ -61,9 +62,12 @@ export async function executeAITurn(
 
   if (!game.isStarted() || !player.isPlaying()) return;
 
-  const turnResult = computeAITurn(difficulty, handCards, boardTiles, hasStarted);
+  console.log(`[AI-EXEC] computing turn: difficulty=${difficulty}, hand=${handCards.length}, board=${boardTiles.length}, hasStarted=${hasStarted}`);
+  const turnResult = await computeAITurn(difficulty, handCards, boardTiles, hasStarted);
+  console.log(`[AI-EXEC] turn result: action=${turnResult.action}${turnResult.action === "play" ? `, moves=${turnResult.moves.length}` : ""}`);
 
   if (turnResult.action === "draw") {
+    console.log(`[AI-EXEC] → drawing card`);
     if (player.canDrawCard()) {
       player.drawCard();
       callbacks.onTurnComplete();
@@ -75,6 +79,7 @@ export async function executeAITurn(
   }
 
   if (turnResult.action === "pass") {
+    console.log(`[AI-EXEC] → passing`);
     if (player.canPass()) {
       player.pass();
     } else if (player.canDrawCard()) {
@@ -84,31 +89,74 @@ export async function executeAITurn(
     return;
   }
 
-  for (const move of turnResult.moves) {
-    if (!game.isStarted() || !player.isPlaying()) return;
+  const moveMoves = turnResult.moves.filter((m) => m.type === "moveCard");
+  const placeMoves = turnResult.moves.filter((m) => m.type === "placeCard");
+  console.log(`[AI-EXEC] executing: ${moveMoves.length} moveCard + ${placeMoves.length} placeCard`);
 
+  let remaining = [...moveMoves];
+  const MAX_RETRIES = 3;
+  let totalMoveOk = 0;
+  let totalMoveFail = 0;
+  for (let attempt = 0; attempt <= MAX_RETRIES && remaining.length > 0; attempt++) {
+    const failed: typeof remaining = [];
+    for (const move of remaining) {
+      if (!game.isStarted() || !player.isPlaying()) return;
+      try {
+        if (move.type === "moveCard" && player.canMoveCard()) {
+          const snapped = player.moveCard(move.from, move.to);
+          totalMoveOk++;
+          callbacks.onMoveExecuted(snapped);
+          await delay(AI_MOVE_DELAY);
+        }
+      } catch (e) {
+        console.log(`[AI-EXEC]   moveCard FAILED (attempt ${attempt}): (${move.from.x},${move.from.y})→(${move.to.x},${move.to.y}): ${e}`);
+        totalMoveFail++;
+        failed.push(move);
+      }
+    }
+    if (failed.length === remaining.length) {
+      console.log(`[AI-EXEC]   moveCard retry stuck, ${failed.length} permanently failed`);
+      break;
+    }
+    remaining = failed;
+  }
+  console.log(`[AI-EXEC] moveCard done: ${totalMoveOk} ok, ${totalMoveFail} failed`);
+
+  let placeOk = 0;
+  let placeFail = 0;
+  for (const move of placeMoves) {
+    if (!game.isStarted() || !player.isPlaying()) return;
     try {
       if (move.type === "placeCard" && player.canPlaceCard()) {
         const snapped = player.placeCard(move.cardIndex, move.position);
-        callbacks.onMoveExecuted(snapped);
-        await delay(AI_MOVE_DELAY);
-      } else if (move.type === "moveCard" && player.canMoveCard()) {
-        const snapped = player.moveCard(move.from, move.to);
+        placeOk++;
         callbacks.onMoveExecuted(snapped);
         await delay(AI_MOVE_DELAY);
       }
-    } catch {
+    } catch (e) {
+      console.log(`[AI-EXEC]   placeCard FAILED: idx=${move.cardIndex} → (${move.position.x},${move.position.y}): ${e}`);
+      placeFail++;
       continue;
     }
   }
+  console.log(`[AI-EXEC] placeCard done: ${placeOk} ok, ${placeFail} failed`);
 
   if (!game.isStarted() || !player.isPlaying()) return;
 
+  const canEnd = player.canEndTurn();
+  console.log(`[AI-EXEC] canEndTurn=${canEnd}`);
+  if (!canEnd) {
+    const dto = player.toDto();
+    console.log(`[AI-EXEC] canEndTurn detail: isPlaying=${dto.isPlaying}, hasStarted=${dto.hasStarted}`);
+    callbacks.onDiagnose?.();
+  }
   try {
-    if (player.canEndTurn()) {
+    if (canEnd) {
       player.endTurn();
+      console.log(`[AI-EXEC] ✓ turn ended successfully`);
       callbacks.onTurnComplete();
     } else {
+      console.log(`[AI-EXEC] ✗ cannot end turn → cancelling + draw`);
       player.cancelTurnModifications();
       if (player.canDrawCard()) {
         player.drawCard();
@@ -118,7 +166,7 @@ export async function executeAITurn(
       callbacks.onTurnComplete();
     }
   } catch (e) {
-    console.error("AI end turn failed:", e);
+    console.error("[AI-EXEC] end turn threw:", e);
     try {
       player.cancelTurnModifications();
       if (player.canDrawCard()) {
@@ -128,7 +176,7 @@ export async function executeAITurn(
       }
       callbacks.onTurnComplete();
     } catch (fallbackError) {
-      console.error("AI fallback failed:", fallbackError);
+      console.error("[AI-EXEC] fallback failed:", fallbackError);
     }
   }
 }

@@ -48,21 +48,21 @@ describe("AI strategies", () => {
   });
 
   describe("mediumStrategy", () => {
-    test("plays combinations from hand", () => {
+    test("plays combinations from hand", async () => {
       const hand = [card("red", 10), card("red", 11), card("red", 12), card("blue", 3)];
-      const result = mediumStrategy(hand, [], true);
+      const result = await mediumStrategy(hand, [], true);
 
       expect(result.action).toBe("play");
     });
 
-    test("extends existing board combination", () => {
+    test("extends existing board combination", async () => {
       const boardTiles = [
         tile(0, 0, card("blue", 5)),
         tile(1, 0, card("blue", 6)),
         tile(2, 0, card("blue", 7)),
       ];
       const hand = [card("blue", 8), card("red", 1)];
-      const result = mediumStrategy(hand, boardTiles, true);
+      const result = await mediumStrategy(hand, boardTiles, true);
 
       expect(result.action).toBe("play");
       if (result.action === "play") {
@@ -70,44 +70,44 @@ describe("AI strategies", () => {
       }
     });
 
-    test("draws when nothing playable", () => {
+    test("draws when nothing playable", async () => {
       const hand = [card("red", 1), card("blue", 5)];
-      const result = mediumStrategy(hand, [], true);
+      const result = await mediumStrategy(hand, [], true);
 
       expect(result.action).toBe("draw");
     });
   });
 
   describe("hardStrategy", () => {
-    test("plays combinations from hand", () => {
+    test("plays combinations from hand", async () => {
       const hand = [
         card("red", 10),
         card("red", 11),
         card("red", 12),
         card("blue", 3),
       ];
-      const result = hardStrategy(hand, [], true);
+      const result = await hardStrategy(hand, [], true);
 
       expect(result.action).toBe("play");
     });
 
-    test("draws when nothing playable", () => {
+    test("draws when nothing playable", async () => {
       const hand = [card("red", 1), card("blue", 5)];
-      const result = hardStrategy(hand, [], true);
+      const result = await hardStrategy(hand, [], true);
 
       expect(result.action).toBe("draw");
     });
 
-    test("plays opening when >= 30 points", () => {
+    test("plays opening when >= 30 points", async () => {
       const hand = [card("red", 10), card("red", 11), card("red", 12)];
-      const result = hardStrategy(hand, [], false);
+      const result = await hardStrategy(hand, [], false);
 
       expect(result.action).toBe("play");
     });
 
-    test("handles joker in hand", () => {
+    test("handles joker in hand", async () => {
       const hand = [card("red", 5), joker(), card("red", 7)];
-      const result = hardStrategy(hand, [], true);
+      const result = await hardStrategy(hand, [], true);
 
       expect(result.action).toBe("play");
     });

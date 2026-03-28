@@ -173,7 +173,16 @@ export function computeMoves(
     .filter((_, idx) => !movedBoardIndices.has(idx))
     .map((t) => ({ ...t }));
 
-  const occupiedTiles: PlacedTileDto[] = [...stayingTiles];
+  // Slot occupancy includes ALL current board tile positions. During
+  // execution, moved tiles still physically sit at their old positions
+  // until their moveCard runs. By treating those as occupied, every
+  // move target is guaranteed to be truly free on the current board,
+  // regardless of execution order.
+  const slotOccupied: PlacedTileDto[] = boardTiles.map((t) => ({ ...t }));
+
+  // Resulting board tracks only final positions (for iterative passes)
+  const resultBoard: PlacedTileDto[] = [...stayingTiles];
+
   const moves: AIMove[] = [];
   const handCardRemovals: number[] = [];
 
@@ -185,7 +194,7 @@ export function computeMoves(
       const tiles = combo.boardTileIndices.map((idx) => boardTiles[idx]);
       if (isAlreadyArranged(tiles)) {
         for (const t of tiles) {
-          occupiedTiles.push({ x: t.x, y: t.y, card: t.card });
+          resultBoard.push({ x: t.x, y: t.y, card: t.card });
         }
         continue;
       }
@@ -193,12 +202,17 @@ export function computeMoves(
     combosToPlace.push(combo);
   }
 
+  console.log(`[AI-PLACE] boardTiles=${boardTiles.length}, movedIndices=${movedBoardIndices.size}, staying=${stayingTiles.length}, combosToPlace=${combosToPlace.length}, keptInPlace=${solverResult.combinations.length - combosToPlace.length}`);
+
   // Second pass: lay out all combos that need new positions
   for (const combo of combosToPlace) {
     const { x: startX, y: row } = findSlotForCombo(
       combo.cards.length,
-      occupiedTiles,
+      slotOccupied,
     );
+
+    const comboDesc = combo.cards.map((c) => `${c.color[0]}${c.number}`).join(",");
+    console.log(`[AI-PLACE]   combo [${comboDesc}] len=${combo.cards.length} → slot (${startX},${row}), hand=${combo.handTileIndices.length} board=${combo.boardTileIndices.length}`);
 
     for (let i = 0; i < combo.cards.length; i++) {
       const card = combo.cards[i];
@@ -215,11 +229,14 @@ export function computeMoves(
           Math.abs(boardTile.x - position.x) > 0.1 ||
           Math.abs(boardTile.y - position.y) > 0.1
         ) {
+          console.log(`[AI-PLACE]     moveCard ${cardKey(card)} (${boardTile.x},${boardTile.y})→(${position.x},${position.y})`);
           moves.push({
             type: "moveCard",
             from: { x: boardTile.x, y: boardTile.y },
             to: position,
           });
+        } else {
+          console.log(`[AI-PLACE]     keep ${cardKey(card)} at (${position.x},${position.y})`);
         }
       } else {
         const handIdx = combo.handTileIndices.find((idx) => {
@@ -234,16 +251,21 @@ export function computeMoves(
         if (handIdx !== undefined) {
           const adjustedIndex =
             handIdx - handCardRemovals.filter((r) => r < handIdx).length;
+          console.log(`[AI-PLACE]     placeCard ${cardKey(card)} handIdx=${handIdx}(adj=${adjustedIndex})→(${position.x},${position.y})`);
           moves.push({ type: "placeCard", cardIndex: adjustedIndex, position });
           handCardRemovals.push(handIdx);
+        } else {
+          console.log(`[AI-PLACE]     ⚠ NO MATCH for card ${cardKey(card)} in combo! handIndices=${JSON.stringify(combo.handTileIndices)} boardIndices=${JSON.stringify(combo.boardTileIndices)}`);
         }
       }
 
-      occupiedTiles.push({ x: position.x, y: position.y, card });
+      slotOccupied.push({ x: position.x, y: position.y, card });
+      resultBoard.push({ x: position.x, y: position.y, card });
     }
   }
 
-  return { moves, resultingBoard: occupiedTiles };
+  console.log(`[AI-PLACE] total moves: ${moves.filter(m => m.type === "moveCard").length} moveCard + ${moves.filter(m => m.type === "placeCard").length} placeCard`);
+  return { moves, resultingBoard: resultBoard };
 }
 
 /**

@@ -178,6 +178,7 @@ export function findExtensions(
     const adjustedIndex = ext.handIndex -
       [...usedIndices].filter((i) => i < ext.handIndex).length;
 
+    console.log(`[AI-EXT] extend: ${ext.card.color[0]}${ext.card.number} handIdx=${ext.handIndex}(adj=${adjustedIndex}) → (${ext.position.x},${ext.position.y}) pts=${ext.points}`);
     moves.push({
       type: "placeCard",
       cardIndex: adjustedIndex,
@@ -187,5 +188,8 @@ export function findExtensions(
     usedPositions.add(posKey(ext.position));
   }
 
+  if (moves.length > 0) {
+    console.log(`[AI-EXT] total extensions: ${moves.length}`);
+  }
   return { moves };
 }

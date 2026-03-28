@@ -6,9 +6,9 @@ const { t } = useI18n();
 const modal = useModal();
 
 const difficulties: { id: AIDifficulty; label: string; description: string; color: string }[] = [
-  { id: "easy", label: "Easy", description: "Plays simple combinations. Good for learning.", color: "text-green-600" },
-  { id: "medium", label: "Medium", description: "Extends board combinations. A fair challenge.", color: "text-yellow-600" },
-  { id: "hard", label: "Hard", description: "Rearranges the board. Expert-level opponent.", color: "text-red-600" },
+  { id: "easy", label: "Easy", description: "A casual opponent. Good for learning the ropes.", color: "text-green-600" },
+  { id: "medium", label: "Medium", description: "A sharp player that won't go easy on you.", color: "text-yellow-600" },
+  { id: "hard", label: "Hard", description: "A ruthless strategist. Good luck.", color: "text-red-600" },
 ];
 
 const selectedDifficulty = ref<AIDifficulty>("medium");
