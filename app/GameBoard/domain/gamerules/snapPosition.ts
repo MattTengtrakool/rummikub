@@ -21,9 +21,14 @@ export function hasCollision(
 }
 
 /**
- * When dropping on an occupied position in a row, shift the contiguous chain
- * of tiles to the right to open a slot. Mutates the array in-place.
+ * When dropping on an occupied position in a row, shift tiles to the right
+ * to open a slot. Mutates the array in-place.
  * Returns true if tiles were shifted.
+ *
+ * Shifts ALL tiles in the same row at position >= target.x (not just the
+ * contiguous chain). This preserves gaps between groups — only shifting the
+ * contiguous chain could close a gap and merge two unrelated groups into a
+ * single invalid combination on a crowded board.
  */
 export function shiftTilesForInsertion(
   target: BoardPosition,
@@ -39,26 +44,13 @@ export function shiftTilesForInsertion(
     return false;
   }
 
-  const rightChain: PlacedTileDto[] = [];
-  let cx = tx;
-  while (true) {
-    const tile = sameRow.find(
-      (t) => Math.abs(t.x - cx) < COLLISION_THRESHOLD,
-    );
-    if (tile) {
-      rightChain.push(tile);
-      cx++;
-    } else {
-      break;
-    }
+  const toShift = sameRow.filter(
+    (t) => t.x >= tx - COLLISION_THRESHOLD,
+  );
+
+  for (const tile of toShift) {
+    tile.x = Math.round(tile.x) + 1;
   }
 
-  if (rightChain.length > 0) {
-    for (const tile of rightChain) {
-      tile.x = Math.round(tile.x) + 1;
-    }
-    return true;
-  }
-
-  return false;
+  return toShift.length > 0;
 }

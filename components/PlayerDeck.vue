@@ -476,7 +476,7 @@ const resolveOverlaps = (row: number) => {
                 'hand-card-active': isHandDragging(card),
                 'hand-card-board': isBoardDragging(card),
               }"
-              :style="{ transform: `translateX(${getVisualX(card)}px)` }"
+              :style="{ transform: isBoardDragging(card) ? `translateX(${getVisualX(card)}px) scale(0.8)` : `translateX(${getVisualX(card)}px)` }"
               style="touch-action: none;"
               @pointerdown="(e) => handleCardPointerDown(e, card)"
             >
@@ -548,9 +548,8 @@ const resolveOverlaps = (row: number) => {
 }
 
 .hand-card-board {
-  opacity: 0.3;
+  opacity: 0;
   pointer-events: none;
-  transform: scale(0.8) !important;
   transition: transform 120ms ease, opacity 120ms ease;
 }
 

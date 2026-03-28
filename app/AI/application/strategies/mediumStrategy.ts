@@ -4,7 +4,7 @@ import type { AITurnResult, AIMove } from "@/app/AI/domain/types";
 import { solveILP } from "@/app/AI/domain/solver/ilpSolver";
 import { computeMoves } from "@/app/AI/domain/solver/boardPlacer";
 import { findExtensions } from "@/app/AI/application/strategies/extensions";
-import { solveWithExtraction } from "@/app/AI/domain/solver/tileExtraction";
+import { solveWithExtractionILP } from "@/app/AI/domain/solver/tileExtraction";
 
 /**
  * Medium AI strategy:
@@ -31,7 +31,7 @@ export async function mediumStrategy(
     });
 
     const extraction = started
-      ? solveWithExtraction(currentHand, currentBoard, true, 50000)
+      ? await solveWithExtractionILP(currentHand, currentBoard)
       : handOnly;
 
     const best =
@@ -63,8 +63,19 @@ export async function mediumStrategy(
   }
 
   if (started && currentHand.length > 0) {
-    const extensions = findExtensions(currentHand, currentBoard);
-    allMoves.push(...extensions.moves);
+    let extHand = [...currentHand];
+    let extBoard = [...currentBoard];
+    for (let extPass = 0; extPass < 3 && extHand.length > 0; extPass++) {
+      const ext = findExtensions(extHand, extBoard);
+      if (ext.moves.length === 0) break;
+      allMoves.push(...ext.moves);
+      for (const move of ext.moves) {
+        if (move.type === "placeCard") {
+          const card = extHand.splice(move.cardIndex, 1)[0];
+          extBoard = [...extBoard, { x: move.position.x, y: move.position.y, card }];
+        }
+      }
+    }
   }
 
   console.log(`[AI-MED] → ${allMoves.length > 0 ? `playing ${allMoves.length} moves` : "drawing"}`);

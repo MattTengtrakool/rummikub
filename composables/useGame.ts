@@ -155,7 +155,6 @@ export const useGame = (gameId: any, username: any) => {
         newGameInfos.state === "started" &&
         gameInfos.value?.state === "created"
       ) {
-        play("game-start");
         logAction(
           t("toast.player_actions.game_started", {
             name: newGameInfos.currentPlayerUsername,

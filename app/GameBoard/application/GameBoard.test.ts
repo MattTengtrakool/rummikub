@@ -166,6 +166,61 @@ describe("GameBoard", () => {
     });
   });
 
+  describe("shift insertion edge cases", () => {
+    test("inserting into a group should not merge it with an adjacent group", () => {
+      const gameBoard = new GameBoard({
+        tiles: [
+          // Group A: suite [5,6,7] black at x=0,1,2
+          { x: 0, y: 0, card: { color: "black", number: 5, duplicata: 1 } },
+          { x: 1, y: 0, card: { color: "black", number: 6, duplicata: 1 } },
+          { x: 2, y: 0, card: { color: "black", number: 7, duplicata: 1 } },
+          // Group B: serie [1,1,1] at x=4,5,6 (gap of 1 empty space at x=3)
+          { x: 4, y: 0, card: { color: "red", number: 1, duplicata: 1 } },
+          { x: 5, y: 0, card: { color: "blue", number: 1, duplicata: 1 } },
+          { x: 6, y: 0, card: { color: "yellow", number: 1, duplicata: 1 } },
+        ],
+      });
+
+      expect(gameBoard.isValid()).toBe(true);
+      expect(gameBoard.toDto().combinations).toHaveLength(2);
+
+      gameBoard.beginTurn();
+
+      // Insert 4black at x=0 (start of group A). This shifts group A right:
+      // 5@0->1, 6@1->2, 7@2->3. Now group A occupies x=1,2,3 and
+      // group B starts at x=4. Gap is 1 (3->4) which merges them!
+      gameBoard.placeCard(
+        { color: "black", number: 4, duplicata: 1 },
+        { x: 0, y: 0 },
+      );
+
+      // The board should still have 2 separate valid groups — the shift
+      // must not silently merge group A into group B.
+      expect(gameBoard.isValid()).toBe(true);
+    });
+
+    test("turnPoints should be positive after valid insertion", () => {
+      const gameBoard = new GameBoard({
+        tiles: [
+          { x: 0, y: 0, card: { color: "black", number: 5, duplicata: 1 } },
+          { x: 1, y: 0, card: { color: "black", number: 6, duplicata: 1 } },
+          { x: 2, y: 0, card: { color: "black", number: 7, duplicata: 1 } },
+          { x: 4, y: 0, card: { color: "red", number: 1, duplicata: 1 } },
+          { x: 5, y: 0, card: { color: "blue", number: 1, duplicata: 1 } },
+          { x: 6, y: 0, card: { color: "yellow", number: 1, duplicata: 1 } },
+        ],
+      });
+
+      gameBoard.beginTurn();
+      gameBoard.placeCard(
+        { color: "black", number: 4, duplicata: 1 },
+        { x: 0, y: 0 },
+      );
+
+      expect(gameBoard.turnPoints()).toBeGreaterThan(0);
+    });
+  });
+
   describe("hasModifications", () => {
     test("should return true when tiles have changed", () => {
       const gameBoard = new GameBoard({

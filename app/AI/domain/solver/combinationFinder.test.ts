@@ -70,6 +70,67 @@ describe("combinationFinder", () => {
       expect(series4.length).toBeGreaterThanOrEqual(1);
     });
 
+    test("expands joker variants so both jokers get independent candidates", () => {
+      const hand = [
+        card("red", 5),
+        card("red", 6),
+        joker(1),           // joker 1 (index 2)
+        card("blue", 8),
+        card("blue", 9),
+        joker(2),           // joker 2 (index 5)
+      ];
+      const pool = buildTilePool(hand);
+      const combos = findAllCandidateCombinations(pool);
+
+      const usesJoker1 = combos.filter((c) =>
+        c.tiles.some((t) => t.originalIndex === 2 && t.fromHand),
+      );
+      const usesJoker2 = combos.filter((c) =>
+        c.tiles.some((t) => t.originalIndex === 5 && t.fromHand),
+      );
+
+      expect(usesJoker1.length).toBeGreaterThan(0);
+      expect(usesJoker2.length).toBeGreaterThan(0);
+
+      // The key test: both jokers should appear in single-joker suite combos
+      // so the ILP can assign each to a different combo
+      const redSuiteJ1 = combos.find(
+        (c) =>
+          c.type === "suite" &&
+          c.tiles.some((t) => t.card.color === "red" && t.card.number === 5) &&
+          c.tiles.some((t) => t.originalIndex === 2),
+      );
+      const blueSuiteJ2 = combos.find(
+        (c) =>
+          c.type === "suite" &&
+          c.tiles.some((t) => t.card.color === "blue" && t.card.number === 8) &&
+          c.tiles.some((t) => t.originalIndex === 5),
+      );
+      expect(redSuiteJ1).toBeDefined();
+      expect(blueSuiteJ2).toBeDefined();
+    });
+
+    test("expands duplicate tile variants", () => {
+      const hand = [
+        card("red", 5, 1),  // dup 1 (index 0)
+        card("red", 5, 2),  // dup 2 (index 1)
+        card("red", 6),
+        card("red", 7),
+      ];
+      const pool = buildTilePool(hand);
+      const combos = findAllCandidateCombinations(pool);
+
+      // Should have suite candidates using dup1 AND dup2
+      const usesDup1 = combos.filter((c) =>
+        c.tiles.some((t) => t.originalIndex === 0),
+      );
+      const usesDup2 = combos.filter((c) =>
+        c.tiles.some((t) => t.originalIndex === 1),
+      );
+      expect(usesDup1.length).toBeGreaterThan(0);
+      expect(usesDup2.length).toBeGreaterThan(0);
+    });
+
     test("returns empty for no valid combinations", () => {
       const hand = [card("red", 1), card("blue", 5), card("black", 13)];
       const pool = buildTilePool(hand);

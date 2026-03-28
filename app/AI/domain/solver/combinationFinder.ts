@@ -15,21 +15,6 @@ export type CandidateCombination = {
   type: "suite" | "serie";
 };
 
-function cardKey(card: CardDto): string {
-  return `${card.color}-${card.number}-${card.duplicata}`;
-}
-
-function buildAvailabilityMap(tiles: TileWithOrigin[]): Map<string, TileWithOrigin[]> {
-  const map = new Map<string, TileWithOrigin[]>();
-  for (const tile of tiles) {
-    const key = cardKey(tile.card);
-    const existing = map.get(key) ?? [];
-    existing.push(tile);
-    map.set(key, existing);
-  }
-  return map;
-}
-
 /**
  * Find all valid suites (runs) from the available tiles.
  * A suite is 3-13 cards of the same color with consecutive numbers.
@@ -148,12 +133,94 @@ function findSeries(tiles: TileWithOrigin[]): CandidateCombination[] {
 }
 
 /**
+ * Expand candidates by generating variants with alternative tile assignments.
+ *
+ * The base generators (findSuites/findSeries) always pick the first available
+ * joker or duplicate tile. This means ALL single-joker candidates reference
+ * jokers[0], and duplicata-1 is always chosen over duplicata-2. Since the ILP
+ * constrains each physical tile to at most one combo, this prevents the solver
+ * from using both jokers (or both duplicates) in separate combos.
+ *
+ * This expansion creates variants where equivalent tiles are swapped:
+ * - All jokers are interchangeable (regardless of their card color)
+ * - Natural tiles with the same color+number are interchangeable
+ */
+function expandWithAlternativeTiles(
+  candidates: CandidateCombination[],
+  allTiles: TileWithOrigin[],
+): CandidateCombination[] {
+  const equivalents = new Map<string, TileWithOrigin[]>();
+  for (const tile of allTiles) {
+    const key = isJoker(tile.card)
+      ? "joker"
+      : `${tile.card.color}-${tile.card.number}`;
+    const list = equivalents.get(key) ?? [];
+    list.push(tile);
+    equivalents.set(key, list);
+  }
+
+  const hasAlternatives = [...equivalents.values()].some((g) => g.length > 1);
+  if (!hasAlternatives) return candidates;
+
+  const seen = new Set<string>();
+  const result: CandidateCombination[] = [];
+  const MAX_VARIANTS_PER_CANDIDATE = 16;
+
+  function tileId(t: TileWithOrigin): string {
+    return `${t.fromHand ? "h" : "b"}-${t.originalIndex}`;
+  }
+
+  for (const candidate of candidates) {
+    const posOptions: TileWithOrigin[][] = candidate.tiles.map((tile) => {
+      const key = isJoker(tile.card)
+        ? "joker"
+        : `${tile.card.color}-${tile.card.number}`;
+      return equivalents.get(key) ?? [tile];
+    });
+
+    let variantCount = 0;
+
+    function enumerate(
+      pos: number,
+      current: TileWithOrigin[],
+      usedIds: Set<string>,
+    ) {
+      if (variantCount >= MAX_VARIANTS_PER_CANDIDATE) return;
+      if (pos === posOptions.length) {
+        const sig =
+          current.map(tileId).sort().join(",") + "|" + candidate.type;
+        if (!seen.has(sig)) {
+          seen.add(sig);
+          result.push({ tiles: [...current], type: candidate.type });
+        }
+        variantCount++;
+        return;
+      }
+      for (const alt of posOptions[pos]) {
+        const id = tileId(alt);
+        if (usedIds.has(id)) continue;
+        current.push(alt);
+        usedIds.add(id);
+        enumerate(pos + 1, current, usedIds);
+        current.pop();
+        usedIds.delete(id);
+      }
+    }
+
+    enumerate(0, [], new Set());
+  }
+
+  return result;
+}
+
+/**
  * Find all valid candidate combinations from the given tiles.
  */
 export function findAllCandidateCombinations(
   tiles: TileWithOrigin[],
 ): CandidateCombination[] {
-  return [...findSuites(tiles), ...findSeries(tiles)];
+  const raw = [...findSuites(tiles), ...findSeries(tiles)];
+  return expandWithAlternativeTiles(raw, tiles);
 }
 
 /**

@@ -34,7 +34,6 @@ const ALL_SOUNDS = [
   "card-place-opponent",
   "card-draw",
   "your-turn",
-  "game-start",
   "game-end",
   "game-end-lose",
   "timer-tick",

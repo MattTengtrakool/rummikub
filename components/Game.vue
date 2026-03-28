@@ -30,6 +30,7 @@
 
   <main
     class="h-dvh flex flex-col bg-body-bg text-body-text"
+    :class="{ 'reduce-animations': reduceAnimations }"
     v-else-if="
       game &&
       game.gameBoard.value &&
@@ -300,6 +301,8 @@ import { BookOpenIcon, ExclamationTriangleIcon, CheckIcon, ArrowRightStartOnRect
 import { ClipboardDocumentIcon } from "@heroicons/vue/20/solid";
 import GameRulesModal from "@/components/GameRulesModal.vue";
 import SettingsModal from "@/components/SettingsModal.vue";
+import { useMusic } from "@/composables/useMusic";
+import { useSettings } from "@/composables/useSettings";
 
 const PLAYER_COLORS = [
   "#ef4444", "#3b82f6", "#22c55e", "#f59e0b",
@@ -317,6 +320,24 @@ const { t } = useI18n();
 
 const { username } = useUsername();
 const game = useGame(params.id, username.value);
+const music = useMusic();
+const { reduceAnimations } = useSettings();
+
+watch(
+  () => game.gameInfos.value?.state,
+  (state) => {
+    if (state === "created") {
+      music.play("lobby");
+    } else if (state === "started") {
+      music.play("game");
+    } else if (state === "ended") {
+      music.stop();
+    }
+  },
+  { immediate: true },
+);
+
+onUnmounted(() => { music.stop(); });
 
 watch(
   () => game.gameInfos.value,
@@ -520,5 +541,14 @@ async function copyLink() {
 }
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+.reduce-animations,
+.reduce-animations *,
+.reduce-animations *::before,
+.reduce-animations *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
 }
 </style>

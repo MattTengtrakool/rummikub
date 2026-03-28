@@ -8,6 +8,7 @@ import {
 import { isValidCardSuite } from "@/app/Combination/domain/gamerules/isValidCardSuite";
 import { isValidCardSerie } from "@/app/Combination/domain/gamerules/isValidCardSerie";
 import { solve, type SolverResult, type SolverCombination } from "./solver";
+import { solveILP } from "./ilpSolver";
 import { computeMoves } from "./boardPlacer";
 import { findExtensions } from "@/app/AI/application/strategies/extensions";
 
@@ -296,6 +297,145 @@ export function solveWithExtraction(
     );
     if (result.handTilesUsed > bestResult.handTilesUsed) {
       bestResult = result;
+    }
+  }
+
+  return bestResult;
+}
+
+/**
+ * ILP-based extraction: same logic as attemptExtraction but uses the
+ * optimal ILP solver instead of the budget-limited backtracking solver.
+ */
+async function attemptExtractionILP(
+  handCards: ReadonlyArray<CardDto>,
+  boardTiles: ReadonlyArray<PlacedTileDto>,
+  combos: DetectedCombination[],
+  extractable: ExtractableInfo[],
+): Promise<ExtractionAttemptResult> {
+  const fail = (bad: Set<number> = new Set()): ExtractionAttemptResult => ({
+    result: EMPTY_RESULT,
+    invalidCombos: bad,
+  });
+
+  const augmentedHand: CardDto[] = [
+    ...handCards,
+    ...extractable.map((e) => e.card),
+  ];
+
+  const solverResult = await solveILP(augmentedHand, [], {
+    hasStarted: true,
+    includeBoard: false,
+  });
+
+  if (solverResult.handTilesUsed === 0) return fail();
+
+  const originalHandSize = handCards.length;
+  const usedBoardIndices = new Set<number>();
+  let usesExtractedTile = false;
+
+  for (const combo of solverResult.combinations) {
+    for (const handIdx of combo.handTileIndices) {
+      if (handIdx >= originalHandSize) {
+        usesExtractedTile = true;
+        const info = extractable[handIdx - originalHandSize];
+        usedBoardIndices.add(info.boardIndex);
+      }
+    }
+  }
+
+  if (!usesExtractedTile) return fail();
+
+  const invalidCombos = findInvalidCombos(combos, boardTiles, usedBoardIndices);
+  if (invalidCombos.size > 0) return fail(invalidCombos);
+
+  const remapped: SolverCombination[] = solverResult.combinations.map((combo) => {
+    const realHandIndices: number[] = [];
+    const boardIndices: number[] = [];
+
+    for (const handIdx of combo.handTileIndices) {
+      if (handIdx >= originalHandSize) {
+        const info = extractable[handIdx - originalHandSize];
+        boardIndices.push(info.boardIndex);
+      } else {
+        realHandIndices.push(handIdx);
+      }
+    }
+
+    return {
+      cards: combo.cards,
+      type: combo.type,
+      handTileIndices: realHandIndices,
+      boardTileIndices: [...combo.boardTileIndices, ...boardIndices],
+    };
+  });
+
+  const actualHandTilesUsed = remapped.reduce(
+    (sum, c) => sum + c.handTileIndices.length,
+    0,
+  );
+
+  if (actualHandTilesUsed === 0) return fail();
+
+  return {
+    result: {
+      combinations: remapped,
+      handTilesUsed: actualHandTilesUsed,
+      pointsAdded: solverResult.pointsAdded,
+    },
+    invalidCombos: new Set(),
+  };
+}
+
+/**
+ * ILP-based extraction with retry logic.
+ * Mirrors solveWithExtraction but uses the optimal ILP solver.
+ */
+export async function solveWithExtractionILP(
+  handCards: ReadonlyArray<CardDto>,
+  boardTiles: ReadonlyArray<PlacedTileDto>,
+): Promise<SolverResult> {
+  if (boardTiles.length === 0) return EMPTY_RESULT;
+
+  const combos = detectCombinations(boardTiles);
+  let bestResult = EMPTY_RESULT;
+
+  const excludedCombos = new Set<number>();
+
+  for (let attempt = 0; attempt <= MAX_EXTRACTION_RETRIES; attempt++) {
+    const extractable = findExtractableTiles(
+      boardTiles, combos, excludedCombos, true,
+    );
+    if (extractable.length === 0) break;
+
+    const { result, invalidCombos } = await attemptExtractionILP(
+      handCards, boardTiles, combos, extractable,
+    );
+
+    if (result.handTilesUsed > 0) {
+      if (result.handTilesUsed > bestResult.handTilesUsed) {
+        bestResult = result;
+      }
+      break;
+    }
+
+    if (invalidCombos.size === 0) break;
+    for (const ci of invalidCombos) excludedCombos.add(ci);
+  }
+
+  if (bestResult.handTilesUsed === 0) {
+    const safeExclude = new Set<number>();
+    for (let ci = 0; ci < combos.length; ci++) {
+      if (combos[ci].tiles.length <= 3) safeExclude.add(ci);
+    }
+    const safeExtractable = findExtractableTiles(boardTiles, combos, safeExclude);
+    if (safeExtractable.length > 0) {
+      const { result } = await attemptExtractionILP(
+        handCards, boardTiles, combos, safeExtractable,
+      );
+      if (result.handTilesUsed > bestResult.handTilesUsed) {
+        bestResult = result;
+      }
     }
   }
 

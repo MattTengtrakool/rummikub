@@ -12,6 +12,7 @@ import { useBoardZoom } from "@/composables/useBoardZoom";
 import { useTileDrag, useTileMetrics, type GroupTile } from "@/composables/useTileDrag";
 import { hasCollision, shiftTilesForInsertion } from "@/app/GameBoard/domain/gamerules/snapPosition";
 import type { PlacedTileDto, DetectedCombinationDto } from "@/app/GameBoard/domain/dtos/gameBoard";
+import { useSettings } from "@/composables/useSettings";
 
 const props = defineProps<{
   highlightedCard?: BoardPosition;
@@ -29,6 +30,7 @@ const { dragState, startDrag, startGroupDrag, updateDrag, endDrag } = useTileDra
 const { tileW, tileH, cellW, cellH } = useTileMetrics();
 
 const zoom = useBoardZoom();
+const { boardTheme, showCursors } = useSettings();
 
 const shiftHeld = ref(false);
 const hoveredTilePos = ref<{ x: number; y: number } | null>(null);
@@ -608,6 +610,7 @@ onUnmounted(() => {
   <div
     ref="boardRef"
     class="board-surface overflow-hidden flex-1 relative"
+    :class="`board-theme-${boardTheme}`"
     style="touch-action: none;"
     @mousemove="handleMouseMove"
     @mouseleave="handleMouseLeave"
@@ -629,7 +632,7 @@ onUnmounted(() => {
       <div
         v-for="(outline, idx) in invalidOutlines"
         :key="'combo-' + idx"
-        class="absolute rounded-xl pointer-events-none combo-outline bg-red-50/50 shadow-[inset_0_0_0_1.5px_rgba(239,68,68,0.2)]"
+        class="absolute rounded-xl pointer-events-none combo-outline"
         :style="{
           left: outline.left + 'px',
           top: outline.top + 'px',
@@ -711,6 +714,7 @@ onUnmounted(() => {
     <!-- Opponent cursors -->
     <OpponentCursor
       v-for="entry in cursorEntries"
+      v-show="showCursors"
       :key="entry.username"
       :cursor="{
         ...entry.cursor,
@@ -735,21 +739,21 @@ onUnmounted(() => {
     <div class="absolute bottom-2 right-2 flex gap-1 z-50 pointer-events-auto">
       <button
         @click.stop="zoom.zoomIn(boardRef)"
-        class="size-8 md:size-6 rounded-md bg-card-bg border border-card-border shadow-sm flex items-center justify-center cursor-pointer hover:bg-separator active:scale-95 transition-all"
+        class="size-8 md:size-6 rounded-md shadow-sm flex items-center justify-center cursor-pointer active:scale-95 transition-all board-control"
         title="Zoom in"
       >
         <MagnifyingGlassPlusIcon class="size-4 md:size-3.5" />
       </button>
       <button
         @click.stop="zoom.zoomOut(boardRef)"
-        class="size-8 md:size-6 rounded-md bg-card-bg border border-card-border shadow-sm flex items-center justify-center cursor-pointer hover:bg-separator active:scale-95 transition-all"
+        class="size-8 md:size-6 rounded-md shadow-sm flex items-center justify-center cursor-pointer active:scale-95 transition-all board-control"
         title="Zoom out"
       >
         <MagnifyingGlassMinusIcon class="size-4 md:size-3.5" />
       </button>
       <button
         @click.stop="handleFit"
-        class="size-8 md:size-6 rounded-md bg-card-bg border border-card-border shadow-sm flex items-center justify-center cursor-pointer hover:bg-separator active:scale-95 transition-all"
+        class="size-8 md:size-6 rounded-md shadow-sm flex items-center justify-center cursor-pointer active:scale-95 transition-all board-control"
         title="Fit to screen"
       >
         <ArrowsPointingOutIcon class="size-4 md:size-3.5" />
@@ -801,14 +805,58 @@ onUnmounted(() => {
 
 <style scoped>
 .board-surface {
-  background-color: #F0EDE6;
-  background-image: radial-gradient(circle, #D8D5CE 0.6px, transparent 0.6px);
   background-size: 20px 20px;
-  box-shadow: inset 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.board-theme-light {
+  --board-bg: #F0EDE6;
+  --board-dot: #D8D5CE;
+  --board-shadow: rgba(0, 0, 0, 0.06);
+  --board-vignette: rgba(0, 0, 0, 0.04);
+  --combo-invalid-bg: rgba(254, 226, 226, 0.5);
+  --combo-invalid-border: rgba(239, 68, 68, 0.2);
+  --board-control-bg: rgba(255, 255, 255, 0.9);
+  --board-control-border: rgba(0, 0, 0, 0.1);
+  --board-control-hover: rgba(0, 0, 0, 0.06);
+  --board-control-text: #44403c;
+}
+
+.board-theme-dark {
+  --board-bg: #2C2A27;
+  --board-dot: #3D3A35;
+  --board-shadow: rgba(0, 0, 0, 0.25);
+  --board-vignette: rgba(0, 0, 0, 0.1);
+  --combo-invalid-bg: rgba(239, 68, 68, 0.15);
+  --combo-invalid-border: rgba(239, 68, 68, 0.4);
+  --board-control-bg: rgba(60, 56, 52, 0.9);
+  --board-control-border: rgba(255, 255, 255, 0.12);
+  --board-control-hover: rgba(255, 255, 255, 0.1);
+  --board-control-text: #d6d3d1;
+}
+
+.board-theme-green {
+  --board-bg: #2D5A3D;
+  --board-dot: #3A6B4C;
+  --board-shadow: rgba(0, 0, 0, 0.15);
+  --board-vignette: rgba(0, 0, 0, 0.1);
+  --combo-invalid-bg: rgba(239, 68, 68, 0.15);
+  --combo-invalid-border: rgba(239, 68, 68, 0.45);
+  --board-control-bg: rgba(35, 70, 48, 0.9);
+  --board-control-border: rgba(255, 255, 255, 0.15);
+  --board-control-hover: rgba(255, 255, 255, 0.1);
+  --board-control-text: #d1d5db;
+}
+
+.board-theme-light,
+.board-theme-dark,
+.board-theme-green {
+  background-color: var(--board-bg);
+  background-image: radial-gradient(circle, var(--board-dot) 0.6px, transparent 0.6px);
+  box-shadow: inset 0 2px 12px var(--board-shadow);
 }
 
 .board-vignette {
-  background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.04) 100%);
+  background: radial-gradient(ellipse at center, transparent 60%, var(--board-vignette) 100%);
 }
 
 .tile-positioned {
@@ -822,6 +870,8 @@ onUnmounted(() => {
 }
 
 .combo-outline {
+  background-color: var(--combo-invalid-bg);
+  box-shadow: inset 0 0 0 1.5px var(--combo-invalid-border);
   transition: left 150ms ease, top 150ms ease, width 150ms ease, height 150ms ease, background-color 200ms ease, box-shadow 200ms ease;
 }
 
@@ -833,10 +883,20 @@ onUnmounted(() => {
   transition: transform 350ms ease-out;
 }
 
+.board-control {
+  background-color: var(--board-control-bg);
+  border: 1px solid var(--board-control-border);
+  color: var(--board-control-text);
+}
+
+.board-control:hover {
+  background-color: var(--board-control-hover);
+}
+
 .group-highlight {
   z-index: 5;
   transform: translateY(-2px);
-  filter: drop-shadow(0 2px 6px rgba(59, 130, 246, 0.25));
+  filter: drop-shadow(0 2px 6px rgba(59, 130, 246, 0.35));
   transition: transform 120ms ease-out, filter 120ms ease-out;
 }
 

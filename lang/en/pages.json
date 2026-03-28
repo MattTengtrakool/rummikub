@@ -60,8 +60,27 @@
         "username": "Username",
         "username_placeholder": "Enter your name",
         "audio": "Audio",
+        "sfx": "Sound effects",
         "volume": "Volume",
         "muted": "Muted",
-        "unmuted": "Sound on"
+        "unmuted": "Sound on",
+        "music": "Music",
+        "music_on": "Music on",
+        "music_off": "Music off",
+        "visual": "Visual",
+        "board_theme": "Board theme",
+        "theme_light": "Light",
+        "theme_dark": "Dark",
+        "theme_green": "Green",
+        "card_size": "Card size",
+        "card_small": "Small",
+        "card_normal": "Normal",
+        "card_large": "Large",
+        "show_cursors": "Opponent cursors",
+        "cursors_on": "Visible",
+        "cursors_off": "Hidden",
+        "reduce_animations": "Reduce animations",
+        "animations_on": "Reduced",
+        "animations_off": "Full"
     }
 }

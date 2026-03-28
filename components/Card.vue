@@ -8,6 +8,7 @@ import BlueCardSymbol from "@/assets/card/symbol/blue.svg?component";
 import RedCardSymbol from "@/assets/card/symbol/red.svg?component";
 import YellowCardSymbol from "@/assets/card/symbol/yellow.svg?component";
 import { LockClosedIcon } from "@heroicons/vue/16/solid";
+import { useTileMetrics } from "@/composables/useTileDrag";
 
 const props = defineProps<{
   movable?: boolean;
@@ -21,6 +22,14 @@ const props = defineProps<{
 
 const { t } = useI18n();
 const { draggingCard } = useDraggingCard();
+const { tileW, tileH } = useTileMetrics();
+
+const cardStyle = computed(() => ({
+  width: `${tileW.value}px`,
+  height: `${tileH.value}px`,
+}));
+
+const isLarge = computed(() => tileH.value >= 60);
 
 watchEffect(() => {
   if (typeof document === 'undefined') return;
@@ -40,41 +49,50 @@ function showHint() {
   <div
     @click="showHint"
     @mousedown="dragHintOpen = false"
-    class="border border-card-border border-t-white/80 relative select-none w-10 h-12 md:w-12 md:h-16 bg-card-bg rounded-md shadow-sm flex-col justify-center items-center gap-1 inline-flex transition-all duration-200"
+    :style="cardStyle"
+    class="border border-card-border border-t-white/80 relative select-none bg-card-bg rounded-md shadow-sm flex-col justify-center items-center gap-1 inline-flex transition-all duration-200"
     :class="[movable && !draggingCard && 'cursor-grab', movable && !draggingCard && 'hover:-translate-y-0.5 hover:shadow-md', dimmed && 'opacity-25 border-dashed shadow-none', animate && 'card-enter', highlighted && 'card-highlight']"
   >
     <template v-if="isJokerNumber(number)">
       <BlackJokerSymbol
         v-if="color === 'black'"
-        class="size-4 md:size-6 mb-1"
+        :class="isLarge ? 'size-6' : 'size-4'"
+        class="mb-1"
       />
-      <RedJokerSymbol v-if="color === 'red'" class="size-4 md:size-6 mb-1" />
+      <RedJokerSymbol
+        v-if="color === 'red'"
+        :class="isLarge ? 'size-6' : 'size-4'"
+        class="mb-1"
+      />
     </template>
     <span
       v-else
-      class="text-sm md:text-xl font-black font-sans"
-      :class="{
-        'text-card-text-red': color === 'red',
-        'text-card-text-blue': color === 'blue',
-        'text-card-text-yellow': color === 'yellow',
-        'text-card-text-black': color === 'black',
-      }"
+      class="font-black font-sans"
+      :class="[
+        isLarge ? 'text-xl' : 'text-sm',
+        {
+          'text-card-text-red': color === 'red',
+          'text-card-text-blue': color === 'blue',
+          'text-card-text-yellow': color === 'yellow',
+          'text-card-text-black': color === 'black',
+        },
+      ]"
     >
       {{ number }}
     </span>
 
     <template v-if="!isJokerNumber(number)">
-      <RedCardSymbol class="size-2 md:size-3" v-if="color === 'red'" />
-      <BlueCardSymbol class="size-2 md:size-3" v-if="color === 'blue'" />
-      <YellowCardSymbol class="size-2 md:size-3" v-if="color === 'yellow'" />
-      <BlackCardSymbol class="size-2 md:size-3" v-if="color === 'black'" />
+      <RedCardSymbol :class="isLarge ? 'size-3' : 'size-2'" v-if="color === 'red'" />
+      <BlueCardSymbol :class="isLarge ? 'size-3' : 'size-2'" v-if="color === 'blue'" />
+      <YellowCardSymbol :class="isLarge ? 'size-3' : 'size-2'" v-if="color === 'yellow'" />
+      <BlackCardSymbol :class="isLarge ? 'size-3' : 'size-2'" v-if="color === 'black'" />
     </template>
 
     <div
       v-if="locked"
       class="absolute inset-0 bg-card-bg-overlay-locked/70 text-card-text-overlay-locked flex items-center justify-center"
     >
-      <LockClosedIcon class="size-4 md:size-6" />
+      <LockClosedIcon :class="isLarge ? 'size-6' : 'size-4'" />
     </div>
 
     <Transition name="drag-hint">

@@ -2,9 +2,14 @@ import type { CardColor, CardNumber } from "@/app/Card/domain/dtos/card";
 import type { BoardPosition, PlacedTileDto } from "@/app/GameBoard/domain/dtos/gameBoard";
 import { snapPosition, hasCollision } from "@/app/GameBoard/domain/gamerules/snapPosition";
 import type { CardDraggingHandler } from "@/logic/cardDragging";
+import { useSettings, type CardSize } from "@/composables/useSettings";
 
-const TILE_SM = { w: 40, h: 48 };
-const TILE_MD = { w: 48, h: 64 };
+const TILE_SIZES: Record<CardSize, { sm: { w: number; h: number }; md: { w: number; h: number } }> = {
+  small:  { sm: { w: 34, h: 42 }, md: { w: 42, h: 56 } },
+  normal: { sm: { w: 40, h: 48 }, md: { w: 48, h: 64 } },
+  large:  { sm: { w: 46, h: 56 }, md: { w: 56, h: 74 } },
+};
+
 const GAP_X = 3;
 const GAP_Y = 14;
 
@@ -17,8 +22,10 @@ if (typeof window !== "undefined") {
 }
 
 export const useTileMetrics = () => {
-  const tileW = computed(() => isMd.value ? TILE_MD.w : TILE_SM.w);
-  const tileH = computed(() => isMd.value ? TILE_MD.h : TILE_SM.h);
+  const { cardSize } = useSettings();
+  const sizes = computed(() => TILE_SIZES[cardSize.value] ?? TILE_SIZES.normal);
+  const tileW = computed(() => isMd.value ? sizes.value.md.w : sizes.value.sm.w);
+  const tileH = computed(() => isMd.value ? sizes.value.md.h : sizes.value.sm.h);
   const cellW = computed(() => tileW.value + GAP_X);
   const cellH = computed(() => tileH.value + GAP_Y);
   return { tileW, tileH, cellW, cellH, gapX: GAP_X, gapY: GAP_Y };
