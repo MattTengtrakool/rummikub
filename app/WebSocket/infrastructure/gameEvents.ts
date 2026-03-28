@@ -322,6 +322,23 @@ export const registerGameEvents = ({
       io.to(gameRoom(game)).emit("player.movedCard", player.toDto(), snapped);
     });
 
+    socket.on("player.moveCards", (moves) => {
+      if (!player.canMoveCard()) {
+        return;
+      }
+      if (!Array.isArray(moves) || moves.length === 0) return;
+
+      try {
+        const snapped = player.moveCards(moves);
+        emitGameUpdate(game);
+        if (snapped.length > 0) {
+          io.to(gameRoom(game)).emit("player.movedCard", player.toDto(), snapped[0]);
+        }
+      } catch {
+        emitGameUpdate(game);
+      }
+    });
+
     socket.on("player.returnCard", (position) => {
       if (!player.canReturnCard(position)) {
         emitGameUpdate(game);
@@ -356,6 +373,7 @@ export const registerGameEvents = ({
         timestamp: Date.now(),
       });
     });
+
   };
 
   gameManager.onGraceExpired = (gameId: GameId, username: string) => {

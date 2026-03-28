@@ -5,11 +5,11 @@ import { solveIteratively } from "@/app/AI/domain/solver/tileExtraction";
 
 /**
  * Hard AI strategy:
- * - Optimal hand play via backtracking solver
- * - Smart board rearrangement: extracts tiles from large combos to form new ones
- * - Multi-pass iterative solving (3 passes) to exploit chain-extraction opportunities
- * - Extensions to squeeze out every remaining tile
- * - Feels like an expert who rearranges the board and rarely misses a play
+ * - Deep backtracking solver with large budget
+ * - Aggressive board rearrangement: dissolves ANY combo (not just 3-tile)
+ *   and redistributes tiles into better arrangements
+ * - 8-pass iterative solving to fully exploit chain-extraction opportunities
+ * - Extensions after every pass to squeeze out every remaining tile
  */
 export function hardStrategy(
   handCards: ReadonlyArray<CardDto>,
@@ -17,9 +17,10 @@ export function hardStrategy(
   hasStarted: boolean,
 ): AITurnResult {
   const moves = solveIteratively(handCards, boardTiles, hasStarted, {
-    extractionBudget: 8000,
-    handOnlyBudget: 5000,
-    maxPasses: 3,
+    extractionBudget: 200000,
+    handOnlyBudget: 100000,
+    maxPasses: 10,
+    dissolveAll: true,
   });
 
   if (moves.length === 0) {

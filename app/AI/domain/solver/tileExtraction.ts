@@ -33,55 +33,56 @@ function boardTileIndex(
 }
 
 /**
- * Identify tiles that can be safely removed from existing board combos.
+ * Identify tiles that can be extracted from existing board combos.
  *
- * - Suite of length L > 3: first and last tiles (removing from ends keeps
- *   the remaining tiles consecutive)
- * - Serie of length 4: any single tile (3 remaining is still valid)
+ * When dissolveAll is false (standard mode):
+ * - 3-tile combos: ALL tiles (dissolution — must use all or none)
+ * - 4+ suite: first and last tiles (safe partial extraction)
+ * - 4+ serie: any single tile (safe partial extraction)
+ *
+ * When dissolveAll is true (aggressive mode):
+ * - ALL tiles from ALL valid combos are extractable. The solver can use
+ *   any subset; validation ensures the remainder is still valid or empty.
  */
 function findExtractableTiles(
   boardTiles: ReadonlyArray<PlacedTileDto>,
   combos: DetectedCombination[],
+  excludeComboIndices: Set<number> = new Set(),
+  dissolveAll: boolean = false,
 ): ExtractableInfo[] {
   const extractable: ExtractableInfo[] = [];
 
   for (let ci = 0; ci < combos.length; ci++) {
     const combo = combos[ci];
     if (combo.type === "invalid") continue;
-    if (combo.tiles.length <= 3) continue;
+    if (excludeComboIndices.has(ci)) continue;
 
     const sorted = [...combo.tiles].sort((a, b) => a.x - b.x);
 
-    if (combo.type === "suite") {
+    if (dissolveAll || combo.tiles.length === 3) {
+      for (const tile of sorted) {
+        const idx = boardTileIndex(boardTiles, tile);
+        if (idx !== -1) {
+          extractable.push({ card: tile.card, boardIndex: idx, comboIndex: ci });
+        }
+      }
+    } else if (combo.type === "suite") {
       const first = sorted[0];
       const last = sorted[sorted.length - 1];
-
       const firstIdx = boardTileIndex(boardTiles, first);
       const lastIdx = boardTileIndex(boardTiles, last);
 
       if (firstIdx !== -1) {
-        extractable.push({
-          card: first.card,
-          boardIndex: firstIdx,
-          comboIndex: ci,
-        });
+        extractable.push({ card: first.card, boardIndex: firstIdx, comboIndex: ci });
       }
       if (lastIdx !== -1) {
-        extractable.push({
-          card: last.card,
-          boardIndex: lastIdx,
-          comboIndex: ci,
-        });
+        extractable.push({ card: last.card, boardIndex: lastIdx, comboIndex: ci });
       }
     } else if (combo.type === "serie") {
       for (const tile of sorted) {
         const idx = boardTileIndex(boardTiles, tile);
         if (idx !== -1) {
-          extractable.push({
-            card: tile.card,
-            boardIndex: idx,
-            comboIndex: ci,
-          });
+          extractable.push({ card: tile.card, boardIndex: idx, comboIndex: ci });
         }
       }
     }
@@ -91,15 +92,14 @@ function findExtractableTiles(
 }
 
 /**
- * Validate that removing the used board tiles doesn't break any
- * existing combo. Each combo must either be fully consumed or have
- * at least 3 remaining tiles that form a valid suite/serie.
+ * Find which board combos would be left in an invalid state by the given
+ * set of removed board tile indices.
  */
-function validateExtractions(
+function findInvalidCombos(
   combos: DetectedCombination[],
   boardTiles: ReadonlyArray<PlacedTileDto>,
   usedBoardIndices: Set<number>,
-): boolean {
+): Set<number> {
   const comboRemovals = new Map<number, number>();
 
   for (const idx of usedBoardIndices) {
@@ -115,12 +115,16 @@ function validateExtractions(
     }
   }
 
+  const invalid = new Set<number>();
   for (const [ci, removedCount] of comboRemovals) {
     const combo = combos[ci];
     const remaining = combo.tiles.length - removedCount;
 
     if (remaining === 0) continue;
-    if (remaining < 3) return false;
+    if (remaining < 3) {
+      invalid.add(ci);
+      continue;
+    }
 
     const remainingTiles = combo.tiles.filter(
       (t) => !usedBoardIndices.has(boardTileIndex(boardTiles, t)),
@@ -130,50 +134,55 @@ function validateExtractions(
       .map((t) => t.card);
 
     if (!isValidCardSuite(remainingCards) && !isValidCardSerie(remainingCards)) {
-      return false;
+      invalid.add(ci);
     }
   }
 
-  return true;
+  return invalid;
 }
 
+type ExtractionAttemptResult = {
+  result: SolverResult;
+  invalidCombos: Set<number>;
+};
+
 /**
- * Single-pass extraction: identify extractable tiles from the board,
- * augment the hand, run the solver, validate, and remap.
+ * Run solver with augmented hand (real hand + extractable tiles),
+ * validate the result, and remap indices.
+ *
+ * Returns the remapped SolverResult on success (with empty invalidCombos),
+ * or EMPTY_RESULT plus the set of problematic combo indices on failure.
  */
-export function solveWithExtraction(
+function attemptExtraction(
   handCards: ReadonlyArray<CardDto>,
   boardTiles: ReadonlyArray<PlacedTileDto>,
-  hasStarted: boolean,
+  combos: DetectedCombination[],
+  extractable: ExtractableInfo[],
   maxSearchNodes: number,
-): SolverResult {
-  if (!hasStarted) return EMPTY_RESULT;
-  if (boardTiles.length === 0) return EMPTY_RESULT;
-
-  const combos = detectCombinations(boardTiles);
-  const extractable = findExtractableTiles(boardTiles, combos);
-
-  if (extractable.length === 0) return EMPTY_RESULT;
+): ExtractionAttemptResult {
+  const fail = (bad: Set<number> = new Set()): ExtractionAttemptResult => ({
+    result: EMPTY_RESULT,
+    invalidCombos: bad,
+  });
 
   const augmentedHand: CardDto[] = [
     ...handCards,
     ...extractable.map((e) => e.card),
   ];
 
-  const result = solve(augmentedHand, [], {
+  const solverResult = solve(augmentedHand, [], {
     hasStarted: true,
     includeBoard: false,
     maxSearchNodes,
   });
 
-  if (result.handTilesUsed === 0) return EMPTY_RESULT;
+  if (solverResult.handTilesUsed === 0) return fail();
 
   const originalHandSize = handCards.length;
-
   const usedBoardIndices = new Set<number>();
   let usesExtractedTile = false;
 
-  for (const combo of result.combinations) {
+  for (const combo of solverResult.combinations) {
     for (const handIdx of combo.handTileIndices) {
       if (handIdx >= originalHandSize) {
         usesExtractedTile = true;
@@ -183,13 +192,12 @@ export function solveWithExtraction(
     }
   }
 
-  if (!usesExtractedTile) return EMPTY_RESULT;
+  if (!usesExtractedTile) return fail();
 
-  if (!validateExtractions(combos, boardTiles, usedBoardIndices)) {
-    return EMPTY_RESULT;
-  }
+  const invalidCombos = findInvalidCombos(combos, boardTiles, usedBoardIndices);
+  if (invalidCombos.size > 0) return fail(invalidCombos);
 
-  const remapped: SolverCombination[] = result.combinations.map((combo) => {
+  const remapped: SolverCombination[] = solverResult.combinations.map((combo) => {
     const realHandIndices: number[] = [];
     const boardIndices: number[] = [];
 
@@ -215,36 +223,103 @@ export function solveWithExtraction(
     0,
   );
 
-  if (actualHandTilesUsed === 0) return EMPTY_RESULT;
+  if (actualHandTilesUsed === 0) return fail();
 
   return {
-    combinations: remapped,
-    handTilesUsed: actualHandTilesUsed,
-    pointsAdded: result.pointsAdded,
+    result: {
+      combinations: remapped,
+      handTilesUsed: actualHandTilesUsed,
+      pointsAdded: solverResult.pointsAdded,
+    },
+    invalidCombos: new Set(),
   };
+}
+
+const MAX_EXTRACTION_RETRIES = 3;
+
+/**
+ * Multi-attempt extraction with dissolution support.
+ *
+ * Phase 1: try with 3-tile combo dissolution enabled. If the solver
+ * partially dissolves combos (uses some but not all tiles from a 3-tile
+ * group), those combos are excluded and the solver retries.
+ *
+ * Phase 2: try safe-only extraction (4+ combos only) as a baseline,
+ * since dissolution retries may have exhausted without finding a valid plan.
+ *
+ * Returns the best valid result across all attempts.
+ */
+export function solveWithExtraction(
+  handCards: ReadonlyArray<CardDto>,
+  boardTiles: ReadonlyArray<PlacedTileDto>,
+  hasStarted: boolean,
+  maxSearchNodes: number,
+  dissolveAll: boolean = false,
+): SolverResult {
+  if (!hasStarted) return EMPTY_RESULT;
+  if (boardTiles.length === 0) return EMPTY_RESULT;
+
+  const combos = detectCombinations(boardTiles);
+  let bestResult = EMPTY_RESULT;
+
+  const excludedCombos = new Set<number>();
+
+  for (let attempt = 0; attempt <= MAX_EXTRACTION_RETRIES; attempt++) {
+    const extractable = findExtractableTiles(
+      boardTiles, combos, excludedCombos, dissolveAll,
+    );
+    if (extractable.length === 0) break;
+
+    const { result, invalidCombos } = attemptExtraction(
+      handCards, boardTiles, combos, extractable, maxSearchNodes,
+    );
+
+    if (result.handTilesUsed > 0) {
+      if (result.handTilesUsed > bestResult.handTilesUsed) {
+        bestResult = result;
+      }
+      break;
+    }
+
+    if (invalidCombos.size === 0) break;
+    for (const ci of invalidCombos) excludedCombos.add(ci);
+  }
+
+  const safeExclude = new Set<number>();
+  for (let ci = 0; ci < combos.length; ci++) {
+    if (combos[ci].tiles.length <= 3) safeExclude.add(ci);
+  }
+  const safeExtractable = findExtractableTiles(boardTiles, combos, safeExclude);
+  if (safeExtractable.length > 0) {
+    const { result } = attemptExtraction(
+      handCards, boardTiles, combos, safeExtractable, maxSearchNodes,
+    );
+    if (result.handTilesUsed > bestResult.handTilesUsed) {
+      bestResult = result;
+    }
+  }
+
+  return bestResult;
 }
 
 export type IterativeSolveConfig = {
   extractionBudget: number;
   handOnlyBudget: number;
   maxPasses: number;
+  dissolveAll?: boolean;
 };
 
 /**
  * Multi-pass iterative solver.
  *
  * Each pass:
- * 1. Tries tile extraction (smart rearrangement) on current board state
+ * 1. Tries tile extraction with dissolution (smart rearrangement)
  * 2. Tries hand-only combos
- * 3. Picks whichever places more hand tiles
+ * 3. Picks whichever places more hand tiles (preferring extraction on ties)
  * 4. Applies the result virtually (updates hand + board)
  * 5. Repeats — the changed board may unlock new extraction opportunities
  *
  * After all passes, runs extensions on the final board state.
- *
- * This captures chain-extraction patterns like:
- * "extract R6 from [R4,R5,R6] → form [R6,B6,G6] → now [R4,R5] is short,
- *  but [R3,R4,R5] with hand R3 forms a new suite" — found in pass 2.
  */
 export function solveIteratively(
   handCards: ReadonlyArray<CardDto>,
@@ -264,6 +339,7 @@ export function solveIteratively(
           currentBoard,
           true,
           config.extractionBudget,
+          config.dissolveAll ?? false,
         )
       : EMPTY_RESULT;
 
@@ -274,7 +350,9 @@ export function solveIteratively(
     });
 
     const best =
-      extraction.handTilesUsed > handOnly.handTilesUsed ? extraction : handOnly;
+      extraction.handTilesUsed >= handOnly.handTilesUsed
+        ? extraction
+        : handOnly;
 
     if (best.handTilesUsed === 0) break;
 

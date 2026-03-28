@@ -12,7 +12,7 @@
     </div>
   </Teleport>
 
-  <UModal :ui="{ background: 'bg-body-bg' }">
+  <UModal v-bind="$attrs" :ui="{ background: 'bg-body-bg' }">
     <div class="relative overflow-hidden">
       <!-- Winner screen -->
       <template v-if="isCurrentUser">
@@ -118,6 +118,8 @@
 import type { GameEndReason } from "@/app/Game/application/Game";
 import { ArrowRightStartOnRectangleIcon } from "@heroicons/vue/20/solid";
 import { FaceFrownIcon } from "@heroicons/vue/24/outline";
+
+defineOptions({ inheritAttrs: false });
 
 const props = defineProps<{
   winnerUsername?: string;

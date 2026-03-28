@@ -30,6 +30,9 @@ export interface IPlayer {
   drawCard(): void;
   placeCard(cardIndex: number, position: BoardPosition): BoardPosition;
   moveCard(from: BoardPosition, to: BoardPosition): BoardPosition;
+  moveCards(
+    moves: ReadonlyArray<{ from: BoardPosition; to: BoardPosition }>,
+  ): BoardPosition[];
   returnCard(position: BoardPosition): void;
   canReturnCard(position: BoardPosition): boolean;
   cancelTurnModifications(): void;
@@ -140,6 +143,13 @@ export class Player implements IPlayer {
   moveCard(from: BoardPosition, to: BoardPosition): BoardPosition {
     this.pushToHistory();
     return this.gameBoard.moveCard(from, to);
+  }
+
+  moveCards(
+    moves: ReadonlyArray<{ from: BoardPosition; to: BoardPosition }>,
+  ): BoardPosition[] {
+    this.pushToHistory();
+    return this.gameBoard.moveCards(moves);
   }
 
   returnCard(position: BoardPosition): void {

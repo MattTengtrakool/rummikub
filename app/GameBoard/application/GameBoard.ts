@@ -25,6 +25,10 @@ export interface IGameBoard {
 
   moveCard(from: BoardPosition, to: BoardPosition): BoardPosition;
 
+  moveCards(
+    moves: ReadonlyArray<{ from: BoardPosition; to: BoardPosition }>,
+  ): BoardPosition[];
+
   removeCard(position: BoardPosition): CardDto;
 
   wasCardOnBoardBeforeTurn(position: BoardPosition): boolean;
@@ -127,6 +131,46 @@ export class GameBoard implements IGameBoard {
     }
 
     this.tiles.push({ x: snapped.x, y: snapped.y, card });
+    return snapped;
+  }
+
+  moveCards(
+    moves: ReadonlyArray<{ from: BoardPosition; to: BoardPosition }>,
+  ): BoardPosition[] {
+    if (moves.length === 0) return [];
+
+    const removed: Array<{ card: CardDto; from: BoardPosition }> = [];
+    for (const move of moves) {
+      const idx = findTileIndex(this.tiles, move.from);
+      if (idx === -1) {
+        for (const r of removed) {
+          this.tiles.push({ x: r.from.x, y: r.from.y, card: r.card });
+        }
+        throw new Error("No tile at source position");
+      }
+      removed.push({ card: this.tiles[idx].card, from: move.from });
+      this.tiles.splice(idx, 1);
+    }
+
+    const snapped: BoardPosition[] = [];
+    for (let i = 0; i < moves.length; i++) {
+      const pos = snapPosition(moves[i].to, this.tiles);
+
+      if (hasCollision(pos, this.tiles)) {
+        for (let j = i - 1; j >= 0; j--) {
+          const placed = this.tiles.pop();
+          if (!placed) break;
+        }
+        for (const r of removed) {
+          this.tiles.push({ x: r.from.x, y: r.from.y, card: r.card });
+        }
+        throw new Error("Destination is occupied");
+      }
+
+      this.tiles.push({ x: pos.x, y: pos.y, card: removed[i].card });
+      snapped.push(pos);
+    }
+
     return snapped;
   }
 

@@ -1,6 +1,6 @@
 import type { CardColor, CardNumber } from "@/app/Card/domain/dtos/card";
 import type { BoardPosition, PlacedTileDto } from "@/app/GameBoard/domain/dtos/gameBoard";
-import { snapPosition } from "@/app/GameBoard/domain/gamerules/snapPosition";
+import { snapPosition, hasCollision } from "@/app/GameBoard/domain/gamerules/snapPosition";
 import type { CardDraggingHandler } from "@/logic/cardDragging";
 
 const TILE_SM = { w: 40, h: 48 };
@@ -28,6 +28,12 @@ export type DragSource =
   | { type: "hand"; cardIndex: number }
   | { type: "board"; position: BoardPosition };
 
+export type GroupTile = {
+  position: BoardPosition;
+  offset: BoardPosition;
+  card: { color: CardColor; number: CardNumber };
+};
+
 export type DragState = {
   active: boolean;
   source: DragSource | null;
@@ -37,6 +43,8 @@ export type DragState = {
   pointerY: number;
   previewPosition: BoardPosition | null;
   previewValid: boolean;
+  isGroup: boolean;
+  groupTiles: GroupTile[];
 };
 
 const initialState: DragState = {
@@ -48,6 +56,8 @@ const initialState: DragState = {
   pointerY: 0,
   previewPosition: null,
   previewValid: false,
+  isGroup: false,
+  groupTiles: [],
 };
 
 const dragState = ref<DragState>({ ...initialState });
@@ -72,6 +82,8 @@ export const useTileDrag = () => {
       pointerY: clientY,
       previewPosition: null,
       previewValid: false,
+      isGroup: false,
+      groupTiles: [],
     };
 
     startDragging({
@@ -79,6 +91,34 @@ export const useTileDrag = () => {
       number,
       sourcePosition:
         source.type === "board" ? source.position : undefined,
+    });
+  };
+
+  const startGroupDrag = (
+    anchorPosition: BoardPosition,
+    anchorColor: CardColor,
+    anchorNumber: CardNumber,
+    groupTiles: GroupTile[],
+    clientX: number,
+    clientY: number,
+  ) => {
+    dragState.value = {
+      active: true,
+      source: { type: "board", position: anchorPosition },
+      color: anchorColor,
+      number: anchorNumber,
+      pointerX: clientX,
+      pointerY: clientY,
+      previewPosition: null,
+      previewValid: false,
+      isGroup: true,
+      groupTiles,
+    };
+
+    startDragging({
+      color: anchorColor,
+      number: anchorNumber,
+      sourcePosition: anchorPosition,
     });
   };
 
@@ -124,20 +164,44 @@ export const useTileDrag = () => {
 
     const rawPosition: BoardPosition = { x: tileX, y: tileY };
 
-    const source = dragState.value.source;
-    const filteredTiles =
-      source?.type === "board"
-        ? existingTiles.filter(
-            (t) =>
-              Math.abs(t.x - source.position.x) > 0.3 ||
-              Math.abs(t.y - source.position.y) > 0.3,
-          )
-        : existingTiles;
+    if (dragState.value.isGroup) {
+      const groupPositions = new Set(
+        dragState.value.groupTiles.map(
+          (gt) => `${Math.round(gt.position.x)},${Math.round(gt.position.y)}`,
+        ),
+      );
+      const filteredTiles = existingTiles.filter(
+        (t) => !groupPositions.has(`${Math.round(t.x)},${Math.round(t.y)}`),
+      );
 
-    const snapped = snapPosition(rawPosition, filteredTiles);
+      const snapped = snapPosition(rawPosition, filteredTiles);
 
-    dragState.value.previewPosition = snapped;
-    dragState.value.previewValid = true;
+      const allValid = dragState.value.groupTiles.every((gt) => {
+        const dest = {
+          x: snapped.x + gt.offset.x,
+          y: snapped.y + gt.offset.y,
+        };
+        return !hasCollision(dest, filteredTiles);
+      });
+
+      dragState.value.previewPosition = snapped;
+      dragState.value.previewValid = allValid;
+    } else {
+      const source = dragState.value.source;
+      const filteredTiles =
+        source?.type === "board"
+          ? existingTiles.filter(
+              (t) =>
+                Math.abs(t.x - source.position.x) > 0.3 ||
+                Math.abs(t.y - source.position.y) > 0.3,
+            )
+          : existingTiles;
+
+      const snapped = snapPosition(rawPosition, filteredTiles);
+
+      dragState.value.previewPosition = snapped;
+      dragState.value.previewValid = true;
+    }
   };
 
   const endDrag = (
@@ -155,6 +219,8 @@ export const useTileDrag = () => {
     const source = dragState.value.source;
     const preview = dragState.value.previewPosition;
     const valid = dragState.value.previewValid;
+    const isGroup = dragState.value.isGroup;
+    const groupTiles = dragState.value.groupTiles;
 
     const overBoard = boardEl
       ? isOverElement(clientX, clientY, boardEl)
@@ -164,12 +230,21 @@ export const useTileDrag = () => {
       : false;
 
     if (overBoard && preview && valid) {
-      if (source.type === "hand") {
+      if (isGroup && source.type === "board") {
+        const moves = groupTiles.map((gt) => ({
+          from: gt.position,
+          to: {
+            x: preview.x + gt.offset.x,
+            y: preview.y + gt.offset.y,
+          },
+        }));
+        handler.moveCards(moves);
+      } else if (source.type === "hand") {
         handler.placeCard(source.cardIndex, preview);
       } else {
         handler.moveCard(source.position, preview);
       }
-    } else if (overHand && source.type === "board") {
+    } else if (overHand && source.type === "board" && !isGroup) {
       handler.returnCard(source.position);
     }
 
@@ -177,13 +252,14 @@ export const useTileDrag = () => {
   };
 
   const cancelDrag = () => {
-    dragState.value = { ...initialState };
+    dragState.value = { ...initialState, groupTiles: [] };
     stopDragging();
   };
 
   return {
     dragState: readonly(dragState),
     startDrag,
+    startGroupDrag,
     updateDrag,
     endDrag,
     cancelDrag,

@@ -13,6 +13,9 @@ export const useBoardZoom = () => {
   let panStartY = 0;
   let startTranslateX = 0;
   let startTranslateY = 0;
+  let pendingPan = false;
+  let pendingPointerId: number | null = null;
+  let pendingTarget: HTMLElement | null = null;
 
   let lastTouchDist = 0;
   let lastTouchMidX = 0;
@@ -101,10 +104,34 @@ export const useBoardZoom = () => {
       startTranslateY = translateY.value;
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
       e.preventDefault();
+    } else if (e.button === 0) {
+      pendingPan = true;
+      pendingPointerId = e.pointerId;
+      pendingTarget = e.currentTarget as HTMLElement;
+      panStartX = e.clientX;
+      panStartY = e.clientY;
+      startTranslateX = translateX.value;
+      startTranslateY = translateY.value;
     }
   };
 
   const onPointerMove = (e: PointerEvent) => {
+    if (pendingPan && !isPanning) {
+      const dx = e.clientX - panStartX;
+      const dy = e.clientY - panStartY;
+      if (Math.hypot(dx, dy) >= PAN_THRESHOLD) {
+        isPanning = true;
+        pendingPan = false;
+        if (pendingTarget && pendingPointerId !== null) {
+          pendingTarget.setPointerCapture(pendingPointerId);
+        }
+        panStartX = e.clientX;
+        panStartY = e.clientY;
+        startTranslateX = translateX.value;
+        startTranslateY = translateY.value;
+      }
+      return;
+    }
     if (!isPanning) return;
     translateX.value = startTranslateX + (e.clientX - panStartX);
     translateY.value = startTranslateY + (e.clientY - panStartY);
@@ -112,6 +139,9 @@ export const useBoardZoom = () => {
 
   const onPointerUp = () => {
     isPanning = false;
+    pendingPan = false;
+    pendingPointerId = null;
+    pendingTarget = null;
   };
 
   let singleTouchId: number | null = null;

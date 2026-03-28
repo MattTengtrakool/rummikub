@@ -5,6 +5,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 const baseObj = {
   placeCard(cardIndex: number, position: BoardPosition) {},
   moveCard(from: BoardPosition, to: BoardPosition) {},
+  moveCards(moves: Array<{ from: BoardPosition; to: BoardPosition }>) {},
   returnCard(position: BoardPosition) {},
 };
 

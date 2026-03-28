@@ -41,6 +41,7 @@ export const useGame = (gameId: any, username: any) => {
   const { play } = useSound();
 
   let wasPlaying = false;
+  let hasShownGroupTip = false;
 
   const connected = ref(false);
   const disconnected = ref(false);
@@ -113,6 +114,7 @@ export const useGame = (gameId: any, username: any) => {
     pass,
     placeCard,
     moveCard,
+    moveCards,
     returnCard,
     moveCursor,
     undoLastAction: rawUndoLastAction,
@@ -125,6 +127,21 @@ export const useGame = (gameId: any, username: any) => {
     onSelfPlayerUpdate(newSelfPlayer) {
       if (newSelfPlayer.isPlaying && !wasPlaying) {
         play("your-turn");
+
+        if (
+          !hasShownGroupTip &&
+          gameBoard.value &&
+          gameBoard.value.combinations.some((c) => c.tiles.length >= 2)
+        ) {
+          hasShownGroupTip = true;
+          const isTouch = typeof window !== "undefined" && "ontouchstart" in window;
+          const tipKey = isTouch
+            ? "toast.tips.group_drag_touch"
+            : "toast.tips.group_drag";
+          setTimeout(() => {
+            logAction(t(tipKey));
+          }, 1200);
+        }
       }
       wasPlaying = newSelfPlayer.isPlaying;
       selfPlayer.value = newSelfPlayer;
@@ -156,11 +173,6 @@ export const useGame = (gameId: any, username: any) => {
         timerRemaining.value = null;
         timerExpired.value = false;
 
-        modal.open(GameEndModal, {
-          winnerUsername: newGameInfos.winnerUsername,
-          selfUsername: username,
-          endReason: newGameInfos.endReason,
-        });
         if (newGameInfos.winnerUsername) {
           const name =
             newGameInfos.winnerUsername === username
@@ -170,6 +182,14 @@ export const useGame = (gameId: any, username: any) => {
         } else {
           logAction(t("toast.player_actions.player_left"));
         }
+
+        nextTick(() => {
+          modal.open(GameEndModal, {
+            winnerUsername: newGameInfos.winnerUsername,
+            selfUsername: username,
+            endReason: newGameInfos.endReason,
+          });
+        });
       }
       gameInfos.value = newGameInfos;
     },
@@ -357,6 +377,7 @@ export const useGame = (gameId: any, username: any) => {
   const cardDraggingHandler = makeCardDraggingHandler({
     placeCard,
     moveCard,
+    moveCards,
     returnCard,
     onCardPlaced: () => play("card-place"),
   });

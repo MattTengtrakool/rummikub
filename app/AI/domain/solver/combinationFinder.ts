@@ -129,7 +129,7 @@ function findSeries(tiles: TileWithOrigin[]): CandidateCombination[] {
       return subsets;
     };
 
-    const subsets = generateSubsets(numberTiles, 2, 4);
+    const subsets = generateSubsets(numberTiles, 1, 4);
 
     for (const subset of subsets) {
       for (let jokerCount = 0; jokerCount <= Math.min(jokers.length, 4 - subset.length); jokerCount++) {

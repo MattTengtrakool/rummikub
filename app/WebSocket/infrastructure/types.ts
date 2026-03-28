@@ -71,6 +71,9 @@ export interface ClientToServerEvents {
     from: BoardPosition,
     to: BoardPosition,
   ) => void;
+  "player.moveCards": (
+    moves: Array<{ from: BoardPosition; to: BoardPosition }>,
+  ) => void;
   "player.returnCard": (position: BoardPosition) => void;
   "player.cancelTurnModifications": () => void;
   "player.undoLastAction": () => void;

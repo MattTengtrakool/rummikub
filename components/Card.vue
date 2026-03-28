@@ -41,7 +41,7 @@ function showHint() {
     @click="showHint"
     @mousedown="dragHintOpen = false"
     class="border border-card-border border-t-white/80 relative select-none w-10 h-12 md:w-12 md:h-16 bg-card-bg rounded-md shadow-sm flex-col justify-center items-center gap-1 inline-flex transition-all duration-200"
-    :class="[movable && !draggingCard && 'cursor-grab', movable && !draggingCard && 'hover:-translate-y-0.5 hover:shadow-md', dimmed && 'opacity-25 border-dashed shadow-none', animate && 'card-enter']"
+    :class="[movable && !draggingCard && 'cursor-grab', movable && !draggingCard && 'hover:-translate-y-0.5 hover:shadow-md', dimmed && 'opacity-25 border-dashed shadow-none', animate && 'card-enter', highlighted && 'card-highlight']"
   >
     <template v-if="isJokerNumber(number)">
       <BlackJokerSymbol
@@ -112,5 +112,22 @@ function showHint() {
 .drag-hint-leave-to {
   opacity: 0;
   transform: translate(-50%, 2px);
+}
+
+.card-highlight {
+  animation: highlight-glow 1.8s ease-out forwards;
+  z-index: 10;
+}
+
+@keyframes highlight-glow {
+  0% {
+    box-shadow: 0 0 0 1.5px rgba(59, 130, 246, 0.45);
+  }
+  60% {
+    box-shadow: 0 0 0 1.5px rgba(59, 130, 246, 0.25);
+  }
+  100% {
+    box-shadow: none;
+  }
 }
 </style>

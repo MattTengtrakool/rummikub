@@ -216,6 +216,12 @@ export const setupGameSocket = ({
     socket.emit("player.moveCard", from, to);
   };
 
+  const moveCards = (
+    moves: Array<{ from: BoardPosition; to: BoardPosition }>,
+  ) => {
+    socket.emit("player.moveCards", moves);
+  };
+
   const returnCard = (position: BoardPosition) => {
     socket.emit("player.returnCard", position);
   };
@@ -247,6 +253,7 @@ export const setupGameSocket = ({
     pass,
     placeCard,
     moveCard,
+    moveCards,
     returnCard,
     moveCursor,
     updateSettings,
