@@ -8,11 +8,14 @@ const props = defineProps<{
 
 const EMOJI_MAP: Record<ReactionType, string> = {
   "thumbs-up": "\u{1F44D}",
+  "thumbs-down": "\u{1F44E}",
   "clap": "\u{1F44F}",
   "thinking": "\u{1F914}",
   "laugh": "\u{1F602}",
   "fire": "\u{1F525}",
   "cry": "\u{1F622}",
+  "angry": "\u{1F621}",
+  "clown": "\u{1F921}",
 };
 
 const emoji = computed(() => EMOJI_MAP[props.reaction] ?? "");

@@ -258,6 +258,75 @@ describe("Player", () => {
 
       expect(player.canDrawCard()).toBe(true);
     });
+
+    test("return false when player placed a card from hand", () => {
+      const player = new Player({
+        id: "player",
+        drawStack: new DrawStack({
+          cards: [{ color: "red", number: 5, duplicata: 1 }],
+        }),
+        gameBoard: new GameBoard({}),
+        cards: [
+          { color: "black", number: 10, duplicata: 1 },
+          { color: "black", number: 11, duplicata: 1 },
+        ],
+      });
+
+      player.beginTurn();
+      player.placeCard(0, { x: 0, y: 0 });
+
+      expect(player.canDrawCard()).toBe(false);
+    });
+
+    test("return true when player only rearranged board tiles and board is valid", () => {
+      const gameBoard = new GameBoard({
+        tiles: [
+          { x: 0, y: 0, card: { color: "black", number: 1, duplicata: 1 } },
+          { x: 1, y: 0, card: { color: "black", number: 2, duplicata: 1 } },
+          { x: 2, y: 0, card: { color: "black", number: 3, duplicata: 1 } },
+          { x: 0, y: 1, card: { color: "black", number: 4, duplicata: 1 } },
+          { x: 1, y: 1, card: { color: "black", number: 5, duplicata: 1 } },
+          { x: 2, y: 1, card: { color: "black", number: 6, duplicata: 1 } },
+          { x: 3, y: 1, card: { color: "black", number: 7, duplicata: 1 } },
+        ],
+      });
+      const player = new Player({
+        id: "player",
+        drawStack: new DrawStack({
+          cards: [{ color: "red", number: 5, duplicata: 1 }],
+        }),
+        gameBoard,
+        cards: [{ color: "black", number: 13, duplicata: 1 }],
+      });
+
+      player.beginTurn();
+      player.moveCard({ x: 0, y: 1 }, { x: 3, y: 0 });
+
+      expect(player.canDrawCard()).toBe(true);
+    });
+
+    test("return false when player rearranged board tiles into invalid state", () => {
+      const gameBoard = new GameBoard({
+        tiles: [
+          { x: 0, y: 0, card: { color: "black", number: 10, duplicata: 1 } },
+          { x: 1, y: 0, card: { color: "black", number: 11, duplicata: 1 } },
+          { x: 2, y: 0, card: { color: "black", number: 12, duplicata: 1 } },
+        ],
+      });
+      const player = new Player({
+        id: "player",
+        drawStack: new DrawStack({
+          cards: [{ color: "red", number: 5, duplicata: 1 }],
+        }),
+        gameBoard,
+        cards: [{ color: "black", number: 1, duplicata: 1 }],
+      });
+
+      player.beginTurn();
+      player.moveCard({ x: 2, y: 0 }, { x: 5, y: 5 });
+
+      expect(player.canDrawCard()).toBe(false);
+    });
   });
 
   describe("canPass", () => {
@@ -296,6 +365,52 @@ describe("Player", () => {
         gameBoard: new GameBoard({}),
         cards: [{ color: "black", number: 1, duplicata: 1 }],
       });
+
+      expect(player.canPass()).toBe(false);
+    });
+
+    test("return true when player only rearranged board tiles and board is valid", () => {
+      const gameBoard = new GameBoard({
+        tiles: [
+          { x: 0, y: 0, card: { color: "black", number: 1, duplicata: 1 } },
+          { x: 1, y: 0, card: { color: "black", number: 2, duplicata: 1 } },
+          { x: 2, y: 0, card: { color: "black", number: 3, duplicata: 1 } },
+          { x: 0, y: 1, card: { color: "black", number: 4, duplicata: 1 } },
+          { x: 1, y: 1, card: { color: "black", number: 5, duplicata: 1 } },
+          { x: 2, y: 1, card: { color: "black", number: 6, duplicata: 1 } },
+          { x: 3, y: 1, card: { color: "black", number: 7, duplicata: 1 } },
+        ],
+      });
+      const player = new Player({
+        id: "player",
+        drawStack: new DrawStack({ cards: [] }),
+        gameBoard,
+        cards: [{ color: "black", number: 13, duplicata: 1 }],
+      });
+
+      player.beginTurn();
+      player.moveCard({ x: 0, y: 1 }, { x: 3, y: 0 });
+
+      expect(player.canPass()).toBe(true);
+    });
+
+    test("return false when player rearranged board tiles into invalid state", () => {
+      const gameBoard = new GameBoard({
+        tiles: [
+          { x: 0, y: 0, card: { color: "black", number: 10, duplicata: 1 } },
+          { x: 1, y: 0, card: { color: "black", number: 11, duplicata: 1 } },
+          { x: 2, y: 0, card: { color: "black", number: 12, duplicata: 1 } },
+        ],
+      });
+      const player = new Player({
+        id: "player",
+        drawStack: new DrawStack({ cards: [] }),
+        gameBoard,
+        cards: [{ color: "black", number: 1, duplicata: 1 }],
+      });
+
+      player.beginTurn();
+      player.moveCard({ x: 2, y: 0 }, { x: 5, y: 5 });
 
       expect(player.canPass()).toBe(false);
     });

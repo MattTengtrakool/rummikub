@@ -137,7 +137,13 @@ export class Player implements IPlayer {
 
   placeCard(cardIndex: number, position: BoardPosition): BoardPosition {
     this.pushToHistory();
-    return this.gameBoard.placeCard(this.giveCard(cardIndex), position);
+    const card = this.giveCard(cardIndex);
+    try {
+      return this.gameBoard.placeCard(card, position);
+    } catch (e) {
+      this.cards = Object.freeze([...this.cards.slice(0, cardIndex), card, ...this.cards.slice(cardIndex)]);
+      throw e;
+    }
   }
 
   moveCard(from: BoardPosition, to: BoardPosition): BoardPosition {
@@ -238,11 +244,18 @@ export class Player implements IPlayer {
     this._isPlaying = false;
   }
 
+  private hasOnlyRearrangedBoard(): boolean {
+    return (
+      this.cards.length === this.previousTurnCards.length &&
+      this.gameBoard.isValid()
+    );
+  }
+
   canDrawCard(): boolean {
     return (
       this._isPlaying &&
-      !this.gameBoard.hasModifications() &&
-      !this.drawStack.isEmpty()
+      !this.drawStack.isEmpty() &&
+      (!this.gameBoard.hasModifications() || this.hasOnlyRearrangedBoard())
     );
   }
 
@@ -250,7 +263,7 @@ export class Player implements IPlayer {
     return (
       this._isPlaying &&
       this.drawStack.isEmpty() &&
-      !this.gameBoard.hasModifications()
+      (!this.gameBoard.hasModifications() || this.hasOnlyRearrangedBoard())
     );
   }
 

@@ -1,3 +1,5 @@
+import { useSettings } from "@/composables/useSettings";
+
 const EXTENSIONS = ["mp3", "wav"] as const;
 const sounds = new Map<string, HTMLAudioElement>();
 const failed = new Set<string>();
@@ -47,13 +49,19 @@ export function useSound() {
     ALL_SOUNDS.forEach(preload);
   }
 
+  const { effectiveVolume } = useSettings();
+
   const play = (name: string, volume = 1) => {
+    const global = effectiveVolume.value;
+    if (global === 0) return;
     if (failed.has(name)) return;
+
+    const finalVolume = Math.min(1, volume * global);
 
     const cached = sounds.get(name);
     if (cached) {
       const clone = cached.cloneNode() as HTMLAudioElement;
-      clone.volume = volume;
+      clone.volume = finalVolume;
       clone.play().catch(() => {});
       return;
     }
@@ -64,7 +72,7 @@ export function useSound() {
       pending.then((audio) => {
         if (!audio) return;
         const clone = audio.cloneNode() as HTMLAudioElement;
-        clone.volume = volume;
+        clone.volume = finalVolume;
         clone.play().catch(() => {});
       }).catch(() => {});
     }

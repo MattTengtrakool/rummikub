@@ -53,5 +53,15 @@
     },
     "rules": {
         "back_home": "Back to home"
+    },
+    "settings": {
+        "title": "Settings",
+        "profile": "Profile",
+        "username": "Username",
+        "username_placeholder": "Enter your name",
+        "audio": "Audio",
+        "volume": "Volume",
+        "muted": "Muted",
+        "unmuted": "Sound on"
     }
 }

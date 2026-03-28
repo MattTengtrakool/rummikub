@@ -39,23 +39,20 @@
     "
   >
     <header class="bg-white/80 backdrop-blur-sm shadow-sm relative z-10">
-      <nav class="flex gap-1 md:gap-2 px-2 py-2 md:px-4 md:py-2.5 items-center justify-between overflow-hidden">
-        <div class="flex items-center gap-1.5 md:gap-2.5 min-w-0 overflow-x-auto">
+      <nav class="flex gap-1 md:gap-2 px-2 py-2 md:px-4 md:py-2.5 items-center justify-between">
+        <!-- Player entries: visible on desktop row 1, hidden on mobile (moved to row 2) -->
+        <div class="hidden md:flex items-center gap-2.5 min-w-0">
           <div v-if="game.gameInfos.value.state === 'created'" class="flex items-center gap-1.5 shrink-0">
             <div class="size-6 rounded-full bg-separator flex items-center justify-center">
               <UserCircleIcon class="size-4 text-body-text-disabled" />
             </div>
-            <span class="text-xs md:text-sm font-medium truncate">{{ username }}</span>
+            <span class="text-sm font-medium truncate">{{ username }}</span>
           </div>
 
           <template v-if="game.gameInfos.value.state === 'started'">
             <span class="player-entry shrink-0" :class="{ 'player-entry--active': game.selfPlayer.value.isPlaying }">
               <span class="player-dot" :class="{ 'player-dot--active': game.selfPlayer.value.isPlaying }" />
               <span class="player-name">{{ t("pages.game.you") }}</span>
-              <span class="tile-count-compact">
-                <span class="tile-icon" />
-                {{ game.selfPlayer.value.cards.length }}
-              </span>
               <span class="tile-count-full">
                 <span
                   v-for="n in Math.min(game.selfPlayer.value.cards.length, maxVisibleTiles)"
@@ -66,12 +63,10 @@
                 <span class="tile-number">{{ game.selfPlayer.value.cards.length }}</span>
               </span>
             </span>
-            <template
-              v-for="(opponent, i) in game.opponents.value"
-              :key="opponent.username"
-            >
+
+            <template v-for="(opponent, i) in game.opponents.value" :key="'desktop-' + opponent.username">
               <span class="player-entry shrink-0" :class="{ 'player-entry--their-turn': opponent.isPlaying }">
-                <CpuChipIcon v-if="opponent.isAI" class="size-3 shrink-0" :class="opponent.isPlaying ? 'text-green-400' : 'text-body-text-disabled'" />
+                <CpuChipIcon v-if="opponent.isAI" class="size-3 shrink-0" :class="opponent.isPlaying ? 'text-blue-500' : 'text-body-text-disabled'" />
                 <span
                   v-else
                   class="player-dot"
@@ -82,10 +77,6 @@
                   :style="!opponent.isPlaying ? { backgroundColor: PLAYER_COLORS[i % PLAYER_COLORS.length] } : undefined"
                 />
                 <span class="player-name">{{ opponent.username }}</span>
-                <span class="tile-count-compact">
-                  <span class="tile-icon" />
-                  {{ opponent.cardCount }}
-                </span>
                 <span class="tile-count-full">
                   <span
                     v-for="n in Math.min(opponent.cardCount, maxVisibleTiles)"
@@ -97,15 +88,23 @@
                 </span>
               </span>
             </template>
-          </template>
 
-          <TimerDisplay
-            v-if="game.gameInfos.value.state === 'started' && game.gameInfos.value.timerSettings.enabled"
-            :remaining="game.timerRemaining.value"
-            :expired="game.timerExpired.value"
-            :strict="game.gameInfos.value.timerSettings.strict"
-            class="shrink-0"
-          />
+            <TimerDisplay
+              v-if="game.gameInfos.value.timerSettings.enabled"
+              :remaining="game.timerRemaining.value"
+              :expired="game.timerExpired.value"
+              :strict="game.gameInfos.value.timerSettings.strict"
+              class="shrink-0"
+            />
+          </template>
+        </div>
+
+        <!-- Mobile: username in lobby state -->
+        <div v-if="game.gameInfos.value.state === 'created'" class="flex md:hidden items-center gap-1.5 min-w-0">
+          <div class="size-6 rounded-full bg-separator flex items-center justify-center shrink-0">
+            <UserCircleIcon class="size-4 text-body-text-disabled" />
+          </div>
+          <span class="text-xs font-medium truncate">{{ username }}</span>
         </div>
 
         <div class="flex items-center gap-1.5 md:gap-2 shrink-0">
@@ -136,6 +135,12 @@
             </div>
           </Button>
 
+          <Button @click="modal.open(SettingsModal)">
+            <div class="flex gap-2">
+              <Cog6ToothIcon class="size-4 text-body-text" />
+            </div>
+          </Button>
+
           <ConnectedUsernames
             v-if="game.connectedUsernames.value"
             :usernames="game.connectedUsernames.value"
@@ -150,6 +155,47 @@
         </div>
       </nav>
 
+      <!-- Players row on mobile (you + opponents + timer) -->
+      <div
+        v-if="game.gameInfos.value.state === 'started'"
+        class="md:hidden flex items-center gap-1 px-2 pb-1.5 overflow-x-auto scrollbar-hide"
+      >
+        <span class="player-entry shrink-0" :class="{ 'player-entry--active': game.selfPlayer.value.isPlaying }">
+          <span class="player-dot" :class="{ 'player-dot--active': game.selfPlayer.value.isPlaying }" />
+          <span class="player-name">{{ t("pages.game.you") }}</span>
+          <span class="tile-count-compact">
+            <span class="tile-icon" />
+            {{ game.selfPlayer.value.cards.length }}
+          </span>
+        </span>
+
+        <template v-for="opponent in game.opponents.value" :key="'mobile-' + opponent.username">
+          <span class="player-entry shrink-0" :class="{ 'player-entry--their-turn': opponent.isPlaying }">
+            <CpuChipIcon v-if="opponent.isAI" class="size-3 shrink-0" :class="opponent.isPlaying ? 'text-blue-500' : 'text-body-text-disabled'" />
+            <span
+              v-else
+              class="player-dot"
+              :class="[
+                opponent.isPlaying ? 'player-dot--their-turn' : '',
+                game.reconnectingPlayers.value?.has(opponent.username) && 'animate-pulse',
+              ]"
+            />
+            <span class="player-name">{{ opponent.username }}</span>
+            <span class="tile-count-compact">
+              <span class="tile-icon" />
+              {{ opponent.cardCount }}
+            </span>
+          </span>
+        </template>
+
+        <TimerDisplay
+          v-if="game.gameInfos.value.timerSettings.enabled"
+          :remaining="game.timerRemaining.value"
+          :expired="game.timerExpired.value"
+          :strict="game.gameInfos.value.timerSettings.strict"
+          class="shrink-0"
+        />
+      </div>
     </header>
 
     <div v-if="game.gameInfos.value.state === 'created'" class="grow flex flex-col items-center justify-center text-center gap-6 p-4">
@@ -250,9 +296,10 @@
   </main>
 </template>
 <script setup lang="ts">
-import { BookOpenIcon, ExclamationTriangleIcon, CheckIcon, ArrowRightStartOnRectangleIcon, UserCircleIcon, CpuChipIcon } from "@heroicons/vue/20/solid";
+import { BookOpenIcon, ExclamationTriangleIcon, CheckIcon, ArrowRightStartOnRectangleIcon, UserCircleIcon, CpuChipIcon, Cog6ToothIcon } from "@heroicons/vue/20/solid";
 import { ClipboardDocumentIcon } from "@heroicons/vue/20/solid";
 import GameRulesModal from "@/components/GameRulesModal.vue";
+import SettingsModal from "@/components/SettingsModal.vue";
 
 const PLAYER_COLORS = [
   "#ef4444", "#3b82f6", "#22c55e", "#f59e0b",
@@ -323,24 +370,34 @@ async function copyLink() {
   gap: 5px;
   padding: 3px 8px 3px 6px;
   border-radius: 6px;
-  transition: background 150ms ease;
+  border: 1px solid transparent;
+  transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
 }
 
 .player-entry--active {
-  background: rgba(22, 163, 74, 0.08);
+  background: rgba(22, 163, 74, 0.12);
+  border: 1px solid rgba(22, 163, 74, 0.25);
+  box-shadow: 0 0 0 1px rgba(22, 163, 74, 0.08);
 }
 
 .player-entry--their-turn {
-  background: rgba(22, 163, 74, 0.05);
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.2);
 }
 
 .player-dot--their-turn {
-  background: #86efac;
+  background: #3b82f6;
+  animation: pulse-dot-blue 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-dot-blue {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+  50% { box-shadow: 0 0 0 3px rgba(59, 130, 246, 0); }
 }
 
 .player-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: #d6d3d1;
   flex-shrink: 0;
@@ -354,7 +411,7 @@ async function copyLink() {
 
 @keyframes pulse-dot {
   0%, 100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.4); }
-  50% { box-shadow: 0 0 0 3px rgba(22, 163, 74, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(22, 163, 74, 0); }
 }
 
 .player-name {
@@ -368,7 +425,13 @@ async function copyLink() {
 }
 
 .player-entry--active .player-name {
-  color: #16a34a;
+  color: #15803d;
+  font-weight: 700;
+}
+
+.player-entry--their-turn .player-name {
+  color: #2563eb;
+  font-weight: 700;
 }
 
 .tile-count-compact {
@@ -449,5 +512,13 @@ async function copyLink() {
   left: 0;
   right: auto;
   bottom: auto;
+}
+
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 </style>

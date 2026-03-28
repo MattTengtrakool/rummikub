@@ -318,9 +318,13 @@ export const registerGameEvents = ({
         return;
       }
 
-      const snapped = player.placeCard(cardIndex, position);
-      emitGameUpdate(game);
-      io.to(gameRoom(game)).emit("player.movedCard", player.toDto(), snapped);
+      try {
+        const snapped = player.placeCard(cardIndex, position);
+        emitGameUpdate(game);
+        io.to(gameRoom(game)).emit("player.movedCard", player.toDto(), snapped);
+      } catch {
+        emitGameUpdate(game);
+      }
     });
 
     socket.on("player.moveCard", (from, to) => {
@@ -328,9 +332,13 @@ export const registerGameEvents = ({
         return;
       }
 
-      const snapped = player.moveCard(from, to);
-      emitGameUpdate(game);
-      io.to(gameRoom(game)).emit("player.movedCard", player.toDto(), snapped);
+      try {
+        const snapped = player.moveCard(from, to);
+        emitGameUpdate(game);
+        io.to(gameRoom(game)).emit("player.movedCard", player.toDto(), snapped);
+      } catch {
+        emitGameUpdate(game);
+      }
     });
 
     socket.on("player.moveCards", (moves) => {

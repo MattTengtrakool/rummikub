@@ -428,7 +428,8 @@ const resolveOverlaps = (row: number) => {
 <template>
   <div
     data-player-deck
-    class="bg-[#F3F1EC] shadow-[0_-2px_8px_rgba(0,0,0,0.05)] flex flex-col gap-0.5 px-2 pt-1.5 pb-0.5 relative z-10"
+    class="flex flex-col gap-0.5 px-2 pt-1.5 pb-0.5 relative z-10"
+    :class="player.isPlaying ? 'deck-your-turn' : 'deck-waiting'"
     style="padding-bottom: max(0.25rem, env(safe-area-inset-bottom));"
   >
     <GameRuleReminder
@@ -447,6 +448,7 @@ const resolveOverlaps = (row: number) => {
     <PlayerActions
       :player="player"
       :game="game"
+      :game-board="gameBoard"
       @cancel-turn-modifications="emit('cancelTurnModifications')"
       @undo-last-action="emit('undoLastAction')"
       @draw-card="emit('drawCard')"
@@ -550,5 +552,15 @@ const resolveOverlaps = (row: number) => {
   pointer-events: none;
   transform: scale(0.8) !important;
   transition: transform 120ms ease, opacity 120ms ease;
+}
+
+.deck-your-turn {
+  background: #F3F1EC;
+  box-shadow: inset 0 3px 0 0 #16a34a, 0 -2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.deck-waiting {
+  background: #F3F1EC;
+  box-shadow: inset 0 3px 0 0 #d6d3d1, 0 -2px 8px rgba(0, 0, 0, 0.05);
 }
 </style>

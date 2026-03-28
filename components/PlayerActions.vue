@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import type { GameInfosDto } from "@/app/Game/application/Game";
+import type { GameBoardDto } from "@/app/GameBoard/domain/dtos/gameBoard";
+import { MIN_POINTS_TO_START } from "@/app/Player/domain/constants/player";
 import type { PlayerDto } from "@/app/Player/domain/dtos/player";
-import { PlusIcon, ForwardIcon, ArrowUturnLeftIcon, XMarkIcon, CheckIcon } from "@heroicons/vue/16/solid";
+import { PlusIcon, ForwardIcon, ArrowUturnLeftIcon, XMarkIcon, CheckIcon, ExclamationTriangleIcon } from "@heroicons/vue/16/solid";
 
 const props = defineProps<{
   player: PlayerDto;
   game: GameInfosDto;
+  gameBoard: GameBoardDto;
 }>();
 
 const emit = defineEmits<{
@@ -17,6 +20,18 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+
+const endTurnBlockReason = computed(() => {
+  if (!props.player.isPlaying || props.player.canEndTurn || props.player.hasDrawnThisTurn) return null;
+  if (!props.gameBoard.hasModifications) return null;
+
+  if (!props.gameBoard.isValid) return t("hint_board_invalid");
+  if (!props.player.hasStarted && props.gameBoard.turnPoints < MIN_POINTS_TO_START) {
+    return t("hint_need_start_points", { points: MIN_POINTS_TO_START });
+  }
+  if (props.gameBoard.turnPoints <= 0) return t("hint_no_new_points");
+  return null;
+});
 </script>
 <template>
   <div v-if="player" class="flex flex-wrap items-center gap-1.5">
@@ -64,6 +79,11 @@ const { t } = useI18n();
       <CheckIcon class="size-3" />
       {{ t("end_turn") }}
     </button>
+
+    <span v-if="endTurnBlockReason" class="end-turn-hint">
+      <ExclamationTriangleIcon class="size-3 shrink-0" />
+      {{ endTurnBlockReason }}
+    </span>
   </div>
 </template>
 <style scoped>
@@ -108,6 +128,15 @@ const { t } = useI18n();
 .action-success:hover {
   background: #f0fdf4;
 }
+
+.end-turn-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #b45309;
+  font-weight: 500;
+}
 </style>
 
 <i18n lang="yaml">
@@ -117,4 +146,7 @@ en:
   undo: Undo
   cancel: Cancel
   end_turn: End turn
+  hint_board_invalid: Board has invalid groups
+  hint_need_start_points: "First meld needs {points}+ points"
+  hint_no_new_points: No new points on the board
 </i18n>

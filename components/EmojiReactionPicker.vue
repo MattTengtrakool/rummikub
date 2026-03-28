@@ -10,11 +10,14 @@ const open = ref(false);
 
 const REACTIONS: { type: ReactionType; emoji: string }[] = [
   { type: "thumbs-up", emoji: "\u{1F44D}" },
+  { type: "thumbs-down", emoji: "\u{1F44E}" },
   { type: "clap", emoji: "\u{1F44F}" },
   { type: "thinking", emoji: "\u{1F914}" },
   { type: "laugh", emoji: "\u{1F602}" },
   { type: "fire", emoji: "\u{1F525}" },
   { type: "cry", emoji: "\u{1F622}" },
+  { type: "angry", emoji: "\u{1F621}" },
+  { type: "clown", emoji: "\u{1F921}" },
 ];
 
 let lastReactionTime = 0;

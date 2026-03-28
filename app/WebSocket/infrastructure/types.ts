@@ -23,7 +23,7 @@ export type ChatMessage = {
   timestamp: number;
 };
 
-export type ReactionType = "thumbs-up" | "clap" | "thinking" | "laugh" | "fire" | "cry";
+export type ReactionType = "thumbs-up" | "thumbs-down" | "clap" | "thinking" | "laugh" | "fire" | "cry" | "angry" | "clown";
 
 export type ReactionMessage = {
   username: string;
@@ -31,7 +31,7 @@ export type ReactionMessage = {
   timestamp: number;
 };
 
-export const REACTION_TYPES: ReactionType[] = ["thumbs-up", "clap", "thinking", "laugh", "fire", "cry"];
+export const REACTION_TYPES: ReactionType[] = ["thumbs-up", "thumbs-down", "clap", "thinking", "laugh", "fire", "cry", "angry", "clown"];
 
 export interface ServerToClientEvents {
   "player.self.update": (selfPlayer: PlayerDto) => void;

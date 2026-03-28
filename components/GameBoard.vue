@@ -154,6 +154,7 @@ const handlePointerUp = (e: PointerEvent) => {
       e.clientX,
       e.clientY,
     );
+    props.moveCursor({ x: -1, y: -1 });
     return;
   }
   zoom.onPointerUp();
@@ -193,6 +194,7 @@ const handleDocumentPointerUp = (e: PointerEvent) => {
       e.clientX,
       e.clientY,
     );
+    props.moveCursor({ x: -1, y: -1 });
   }
 };
 
