@@ -1,6 +1,6 @@
 import type { CardColor, CardNumber } from "@/app/Card/domain/dtos/card";
 import type { GameInfosDto, TimerSettings } from "@/app/Game/application/Game";
-import type { CardPositionOnBoard } from "@/app/GameBoard/application/GameBoard";
+import type { BoardPosition } from "@/app/GameBoard/domain/dtos/gameBoard";
 import type { GameBoardDto } from "@/app/GameBoard/domain/dtos/gameBoard";
 import type { IPlayer } from "@/app/Player/application/Player";
 import type { PlayerDto } from "@/app/Player/domain/dtos/player";
@@ -39,7 +39,7 @@ export interface ServerToClientEvents {
   "player.undoneAction": (player: PlayerDto) => void;
   "player.movedCard": (
     player: PlayerDto,
-    cardPosition: CardPositionOnBoard,
+    position: BoardPosition,
   ) => void;
   "gameBoard.update": (gameBoard: GameBoardDto) => void;
   "game.infos.update": (game: GameInfosDto) => void;
@@ -60,17 +60,15 @@ export interface ClientToServerEvents {
   "game.start": () => void;
   "game.leave": () => void;
   "player.drawCard": () => void;
-  "player.placeCardAlone": (cardIndex: number) => void;
-  "player.placeCardInCombination": (
+  "player.placeCard": (
     cardIndex: number,
-    destination: CardPositionOnBoard,
+    position: BoardPosition,
   ) => void;
-  "player.moveCardAlone": (source: CardPositionOnBoard) => void;
-  "player.moveCardToCombination": (
-    source: CardPositionOnBoard,
-    destination: CardPositionOnBoard,
+  "player.moveCard": (
+    from: BoardPosition,
+    to: BoardPosition,
   ) => void;
-  "player.returnCardToHand": (source: CardPositionOnBoard) => void;
+  "player.returnCard": (position: BoardPosition) => void;
   "player.cancelTurnModifications": () => void;
   "player.undoLastAction": () => void;
   "player.endTurn": () => void;
@@ -84,10 +82,7 @@ export interface ClientToServerEvents {
 export type DraggingCardInfo = {
   color: CardColor;
   number: CardNumber;
-  sourcePosition?: {
-    combinationIndex: number;
-    cardIndex: number;
-  };
+  sourcePosition?: BoardPosition;
 };
 
 export type CursorPosition = {

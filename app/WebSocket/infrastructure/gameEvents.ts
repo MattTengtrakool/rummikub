@@ -84,9 +84,8 @@ export const registerGameEvents = ({
   };
 
   const emitGameUpdate = (game: IGame) => {
-    io.to(gameRoom(game)).emit("game.infos.update", game.toInfosDto());
-
     const gameDto = game.toDto();
+
     io.to(gameRoom(game)).emit("gameBoard.update", gameDto.gameBoard);
 
     gameDto.players.forEach((player) => {
@@ -102,6 +101,8 @@ export const registerGameEvents = ({
         }));
       io.to(playerRoom(game, player)).emit("opponents.update", opponents);
     });
+
+    io.to(gameRoom(game)).emit("game.infos.update", game.toInfosDto());
   };
 
   const emitConnectionsUpdate = (game: IGame) => {
@@ -259,54 +260,34 @@ export const registerGameEvents = ({
       }
     });
 
-    socket.on("player.moveCardAlone", (source) => {
-      if (!player.canMoveCardAlone()) {
+    socket.on("player.placeCard", (cardIndex, position) => {
+      if (!player.canPlaceCard()) {
         return;
       }
 
-      const combinationIndex = player.moveCardAlone(source);
+      const snapped = player.placeCard(cardIndex, position);
       emitGameUpdate(game);
-      io.to(gameRoom(game)).emit("player.movedCard", player.toDto(), {
-        combinationIndex,
-        cardIndex: 0,
-      });
+      io.to(gameRoom(game)).emit("player.movedCard", player.toDto(), snapped);
     });
 
-    socket.on("player.moveCardToCombination", (source, destination) => {
-      if (!player.canMoveCardToCombination()) {
+    socket.on("player.moveCard", (from, to) => {
+      if (!player.canMoveCard()) {
         return;
       }
 
-      player.moveCardToCombination(source, destination);
+      const snapped = player.moveCard(from, to);
       emitGameUpdate(game);
-      io.to(gameRoom(game)).emit(
-        "player.movedCard",
-        player.toDto(),
-        destination,
-      );
+      io.to(gameRoom(game)).emit("player.movedCard", player.toDto(), snapped);
     });
 
-    socket.on("player.returnCardToHand", (source) => {
-      if (!player.canReturnCardToHand(source)) {
+    socket.on("player.returnCard", (position) => {
+      if (!player.canReturnCard(position)) {
         emitGameUpdate(game);
         return;
       }
 
-      player.returnCardToHand(source);
+      player.returnCard(position);
       emitGameUpdate(game);
-    });
-
-    socket.on("player.placeCardAlone", (cardIndex) => {
-      if (!player.canPlaceCardAlone()) {
-        return;
-      }
-
-      const combinationIndex = player.placeCardAlone(cardIndex);
-      emitGameUpdate(game);
-      io.to(gameRoom(game)).emit("player.movedCard", player.toDto(), {
-        combinationIndex,
-        cardIndex: 0,
-      });
     });
 
     socket.on("cursor.move", (position) => {
@@ -332,20 +313,6 @@ export const registerGameEvents = ({
         reaction,
         timestamp: Date.now(),
       });
-    });
-
-    socket.on("player.placeCardInCombination", (cardIndex, destination) => {
-      if (!player.canPlaceCardInCombination()) {
-        return;
-      }
-
-      player.placeCardInCombination(cardIndex, destination);
-      emitGameUpdate(game);
-      io.to(gameRoom(game)).emit(
-        "player.movedCard",
-        player.toDto(),
-        destination,
-      );
     });
   };
 

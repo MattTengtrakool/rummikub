@@ -28,12 +28,19 @@ watchEffect(() => {
 });
 
 const dragHintOpen = ref(false);
+let hintTimer: ReturnType<typeof setTimeout> | null = null;
+
+function showHint() {
+  dragHintOpen.value = true;
+  if (hintTimer) clearTimeout(hintTimer);
+  hintTimer = setTimeout(() => { dragHintOpen.value = false; }, 1800);
+}
 </script>
 <template>
   <div
-    @click="dragHintOpen=true"
+    @click="showHint"
     @mousedown="dragHintOpen = false"
-    class="border border-card-border border-t-white/80 relative overflow-hidden select-none w-10 h-12 md:w-12 md:h-16 bg-card-bg rounded-md shadow-sm flex-col justify-center items-center gap-1 inline-flex transition-all duration-200"
+    class="border border-card-border border-t-white/80 relative select-none w-10 h-12 md:w-12 md:h-16 bg-card-bg rounded-md shadow-sm flex-col justify-center items-center gap-1 inline-flex transition-all duration-200"
     :class="[movable && !draggingCard && 'cursor-grab', movable && !draggingCard && 'hover:-translate-y-0.5 hover:shadow-md', dimmed && 'opacity-25 border-dashed shadow-none', animate && 'card-enter']"
   >
     <template v-if="isJokerNumber(number)">
@@ -70,14 +77,15 @@ const dragHintOpen = ref(false);
       <LockClosedIcon class="size-4 md:size-6" />
     </div>
 
-    <UPopover class="absolute inset-0" v-model:open="dragHintOpen" :ui="{ring: 'ring-0'}">
-      <div class="-z-10 absolute inset-0"></div>
-      <template #panel>
-        <div class="p-2 text-xs">
-          {{ t("components.card.drag_hint") }}
-        </div>
-      </template>
-    </UPopover>
+    <Transition name="drag-hint">
+      <div
+        v-if="dragHintOpen"
+        class="absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-1 rounded-md bg-gray-800/90 text-white text-[10px] font-medium shadow-lg pointer-events-none backdrop-blur-sm z-50"
+      >
+        {{ t("components.card.drag_hint") }}
+        <div class="absolute left-1/2 -translate-x-1/2 -bottom-1 w-2 h-2 bg-gray-800/90 rotate-45 rounded-[1px]" />
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -89,5 +97,20 @@ const dragHintOpen = ref(false);
 @keyframes card-pop-in {
   from { transform: scale(0.85); opacity: 0.5; }
   to { transform: scale(1); opacity: 1; }
+}
+
+.drag-hint-enter-active {
+  transition: opacity 120ms ease-out, transform 120ms ease-out;
+}
+.drag-hint-leave-active {
+  transition: opacity 200ms ease-in, transform 200ms ease-in;
+}
+.drag-hint-enter-from {
+  opacity: 0;
+  transform: translate(-50%, 4px);
+}
+.drag-hint-leave-to {
+  opacity: 0;
+  transform: translate(-50%, 2px);
 }
 </style>

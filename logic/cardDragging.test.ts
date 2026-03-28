@@ -1,19 +1,11 @@
-import type { CardPositionOnBoard } from "@/app/GameBoard/application/GameBoard";
+import type { BoardPosition } from "@/app/GameBoard/domain/dtos/gameBoard";
 import { makeCardDraggingHandler } from "@/logic/cardDragging";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 const baseObj = {
-  placeCardAlone(cardIndex: number) {},
-  placeCardInCombination(
-    cardIndex: number,
-    destination: CardPositionOnBoard
-  ) {},
-  moveCardAlone(source: CardPositionOnBoard) {},
-  moveCardToCombination(
-    source: CardPositionOnBoard,
-    destination: CardPositionOnBoard
-  ) {},
-  returnCardToHand(source: CardPositionOnBoard) {},
+  placeCard(cardIndex: number, position: BoardPosition) {},
+  moveCard(from: BoardPosition, to: BoardPosition) {},
+  returnCard(position: BoardPosition) {},
 };
 
 afterEach(() => {
@@ -21,71 +13,57 @@ afterEach(() => {
 });
 
 describe("cardDragging", () => {
-  test("call placeCardAlone when source card and no destination", () => {
-    const spy = vi.spyOn(baseObj, "placeCardAlone");
-    const cardDraggingHandler = makeCardDraggingHandler(baseObj);
+  test("call placeCard with card index and position", () => {
+    const spy = vi.spyOn(baseObj, "placeCard");
+    const handler = makeCardDraggingHandler(baseObj);
 
-    cardDraggingHandler.to(null, null);
-    cardDraggingHandler.from(1, null);
+    handler.placeCard(1, { x: 3, y: 2 });
 
-    expect(spy).toHaveBeenCalledWith(1);
+    expect(spy).toHaveBeenCalledWith(1, { x: 3, y: 2 });
   });
 
-  test("call placeCardInCombination when source card and destination card+combination", () => {
-    const spy = vi.spyOn(baseObj, "placeCardInCombination");
-    const cardDraggingHandler = makeCardDraggingHandler(baseObj);
+  test("call moveCard with source and destination positions", () => {
+    const spy = vi.spyOn(baseObj, "moveCard");
+    const handler = makeCardDraggingHandler(baseObj);
 
-    cardDraggingHandler.to(1, 1);
-    cardDraggingHandler.from(1, null);
+    handler.moveCard({ x: 0, y: 0 }, { x: 5, y: 3 });
 
-    expect(spy).toHaveBeenCalledWith(1, {
-      cardIndex: 1,
-      combinationIndex: 1,
-    });
+    expect(spy).toHaveBeenCalledWith({ x: 0, y: 0 }, { x: 5, y: 3 });
   });
 
-  test("call moveCardAlone when source card+combination, and no destination", () => {
-    const spy = vi.spyOn(baseObj, "moveCardAlone");
-    const cardDraggingHandler = makeCardDraggingHandler(baseObj);
+  test("call returnCard with board position", () => {
+    const spy = vi.spyOn(baseObj, "returnCard");
+    const handler = makeCardDraggingHandler(baseObj);
 
-    cardDraggingHandler.to(null, null);
-    cardDraggingHandler.from(1, 1);
+    handler.returnCard({ x: 2, y: 1 });
 
-    expect(spy).toHaveBeenCalledWith({
-      cardIndex: 1,
-      combinationIndex: 1,
-    });
+    expect(spy).toHaveBeenCalledWith({ x: 2, y: 1 });
   });
 
-  test("call moveCardToCombination when source card+combination, and destination card+combination", () => {
-    const spy = vi.spyOn(baseObj, "moveCardToCombination");
-    const cardDraggingHandler = makeCardDraggingHandler(baseObj);
+  test("call onCardPlaced for placeCard", () => {
+    const onCardPlaced = vi.fn();
+    const handler = makeCardDraggingHandler({ ...baseObj, onCardPlaced });
 
-    cardDraggingHandler.to(1, 1);
-    cardDraggingHandler.from(1, 1);
+    handler.placeCard(0, { x: 0, y: 0 });
 
-    expect(spy).toHaveBeenCalledWith(
-      {
-        cardIndex: 1,
-        combinationIndex: 1,
-      },
-      {
-        cardIndex: 1,
-        combinationIndex: 1,
-      }
-    );
+    expect(onCardPlaced).toHaveBeenCalledOnce();
   });
 
-  test("call returnCardToHand when source card+combination and destination is hand", () => {
-    const spy = vi.spyOn(baseObj, "returnCardToHand");
-    const cardDraggingHandler = makeCardDraggingHandler(baseObj);
+  test("call onCardPlaced for moveCard", () => {
+    const onCardPlaced = vi.fn();
+    const handler = makeCardDraggingHandler({ ...baseObj, onCardPlaced });
 
-    cardDraggingHandler.toHand();
-    cardDraggingHandler.from(2, 0);
+    handler.moveCard({ x: 0, y: 0 }, { x: 1, y: 1 });
 
-    expect(spy).toHaveBeenCalledWith({
-      cardIndex: 2,
-      combinationIndex: 0,
-    });
+    expect(onCardPlaced).toHaveBeenCalledOnce();
+  });
+
+  test("do not call onCardPlaced for returnCard", () => {
+    const onCardPlaced = vi.fn();
+    const handler = makeCardDraggingHandler({ ...baseObj, onCardPlaced });
+
+    handler.returnCard({ x: 0, y: 0 });
+
+    expect(onCardPlaced).not.toHaveBeenCalled();
   });
 });

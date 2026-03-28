@@ -52,25 +52,26 @@ export const useBoardZoom = () => {
     translateY.value = 0;
   };
 
-  const fitToScreen = (containerEl: HTMLElement | null, contentEl: HTMLElement | null) => {
-    if (!containerEl || !contentEl) {
+  const fitToScreen = (
+    containerEl: HTMLElement | null,
+    contentBounds: { x: number; y: number; width: number; height: number } | null,
+  ) => {
+    if (!containerEl || !contentBounds || contentBounds.width === 0 || contentBounds.height === 0) {
       resetZoom();
       return;
     }
     const cRect = containerEl.getBoundingClientRect();
-    const sRect = contentEl.scrollWidth;
-    const sHeight = contentEl.scrollHeight;
 
-    if (sRect === 0 || sHeight === 0) {
-      resetZoom();
-      return;
-    }
+    const scaleX = cRect.width / contentBounds.width;
+    const scaleY = cRect.height / contentBounds.height;
+    const newScale = Math.min(1, clampScale(Math.min(scaleX, scaleY) * 0.85));
 
-    const scaleX = cRect.width / sRect;
-    const scaleY = cRect.height / sHeight;
-    scale.value = clampScale(Math.min(scaleX, scaleY) * 0.95);
-    translateX.value = 0;
-    translateY.value = 0;
+    const centerX = contentBounds.x + contentBounds.width / 2;
+    const centerY = contentBounds.y + contentBounds.height / 2;
+
+    translateX.value = cRect.width / 2 - centerX * newScale;
+    translateY.value = cRect.height / 2 - centerY * newScale;
+    scale.value = newScale;
   };
 
   const onWheel = (e: WheelEvent) => {
@@ -113,11 +114,14 @@ export const useBoardZoom = () => {
     isPanning = false;
   };
 
+  let singleTouchId: number | null = null;
+
   const touchDist = (t1: Touch, t2: Touch) =>
     Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
 
-  const onTouchStart = (e: TouchEvent) => {
+  const onTouchStart = (e: TouchEvent, isDraggingCard: boolean) => {
     if (e.touches.length === 2) {
+      singleTouchId = null;
       const [t1, t2] = [e.touches[0], e.touches[1]];
       lastTouchDist = touchDist(t1, t2);
       lastTouchMidX = (t1.clientX + t2.clientX) / 2;
@@ -127,11 +131,22 @@ export const useBoardZoom = () => {
       panStartY = lastTouchMidY;
       startTranslateX = translateX.value;
       startTranslateY = translateY.value;
+    } else if (e.touches.length === 1 && !isDraggingCard) {
+      const t = e.touches[0];
+      singleTouchId = t.identifier;
+      isPanning = false;
+      panStartX = t.clientX;
+      panStartY = t.clientY;
+      startTranslateX = translateX.value;
+      startTranslateY = translateY.value;
     }
   };
 
+  const PAN_THRESHOLD = 8;
+
   const onTouchMove = (e: TouchEvent) => {
     if (e.touches.length === 2) {
+      singleTouchId = null;
       e.preventDefault();
       const [t1, t2] = [e.touches[0], e.touches[1]];
       const dist = touchDist(t1, t2);
@@ -153,12 +168,35 @@ export const useBoardZoom = () => {
       lastTouchDist = dist;
       panStartX = midX;
       panStartY = midY;
+    } else if (e.touches.length === 1 && singleTouchId !== null) {
+      const t = Array.from(e.touches).find((t) => t.identifier === singleTouchId);
+      if (!t) return;
+
+      if (!isPanning) {
+        const dx = t.clientX - panStartX;
+        const dy = t.clientY - panStartY;
+        if (Math.hypot(dx, dy) >= PAN_THRESHOLD) {
+          isPanning = true;
+          panStartX = t.clientX;
+          panStartY = t.clientY;
+          startTranslateX = translateX.value;
+          startTranslateY = translateY.value;
+        }
+        return;
+      }
+
+      e.preventDefault();
+      translateX.value = startTranslateX + (t.clientX - panStartX);
+      translateY.value = startTranslateY + (t.clientY - panStartY);
     }
   };
 
   const onTouchEnd = (e: TouchEvent) => {
     if (e.touches.length < 2) {
       isPanning = false;
+    }
+    if (e.touches.length === 0) {
+      singleTouchId = null;
     }
   };
 

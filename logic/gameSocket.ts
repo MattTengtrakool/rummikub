@@ -2,7 +2,7 @@ import type {
   GameInfosDto,
   TimerSettings,
 } from "@/app/Game/application/Game";
-import type { CardPositionOnBoard } from "@/app/GameBoard/application/GameBoard";
+import type { BoardPosition } from "@/app/GameBoard/domain/dtos/gameBoard";
 import type { GameBoardDto } from "@/app/GameBoard/domain/dtos/gameBoard";
 import { localStorageKey } from "@/app/LocalStorage/infrastructure/constants";
 import type { PlayerDto } from "@/app/Player/domain/dtos/player";
@@ -53,7 +53,7 @@ export const setupGameSocket = ({
   onPlayerUndoneAction: (player: PlayerDto) => void;
   onPlayerMovedCard: (
     player: PlayerDto,
-    cardPosition: CardPositionOnBoard,
+    position: BoardPosition,
   ) => void;
   onGameBoardUpdate: (gameBoard: GameBoardDto) => void;
   onGameInfosUpdate: (game: GameInfosDto) => void;
@@ -133,8 +133,8 @@ export const setupGameSocket = ({
     onPlayerUndoneAction(player);
   });
 
-  socket.on("player.movedCard", (player, cardPosition) => {
-    onPlayerMovedCard(player, cardPosition);
+  socket.on("player.movedCard", (player, position) => {
+    onPlayerMovedCard(player, position);
   });
 
   socket.on("gameBoard.update", (gameBoard) => {
@@ -208,30 +208,16 @@ export const setupGameSocket = ({
     socket.emit("player.pass");
   };
 
-  const moveCardAlone = (source: CardPositionOnBoard) => {
-    socket.emit("player.moveCardAlone", source);
+  const placeCard = (cardIndex: number, position: BoardPosition) => {
+    socket.emit("player.placeCard", cardIndex, position);
   };
 
-  const moveCardToCombination = (
-    source: CardPositionOnBoard,
-    destination: CardPositionOnBoard,
-  ) => {
-    socket.emit("player.moveCardToCombination", source, destination);
+  const moveCard = (from: BoardPosition, to: BoardPosition) => {
+    socket.emit("player.moveCard", from, to);
   };
 
-  const placeCardAlone = (cardIndex: number) => {
-    socket.emit("player.placeCardAlone", cardIndex);
-  };
-
-  const placeCardInCombination = (
-    cardIndex: number,
-    destination: CardPositionOnBoard,
-  ) => {
-    socket.emit("player.placeCardInCombination", cardIndex, destination);
-  };
-
-  const returnCardToHand = (source: CardPositionOnBoard) => {
-    socket.emit("player.returnCardToHand", source);
+  const returnCard = (position: BoardPosition) => {
+    socket.emit("player.returnCard", position);
   };
 
   const moveCursor = (position: CursorPosition) => {
@@ -259,11 +245,9 @@ export const setupGameSocket = ({
     drawCard,
     endTurn,
     pass,
-    moveCardAlone,
-    moveCardToCombination,
-    placeCardAlone,
-    placeCardInCombination,
-    returnCardToHand,
+    placeCard,
+    moveCard,
+    returnCard,
     moveCursor,
     updateSettings,
     sendChatMessage,

@@ -11,7 +11,7 @@
         <div class="size-7 rounded-full bg-separator flex items-center justify-center">
           <UserCircleIcon class="size-5 text-body-text-disabled" />
         </div>
-        <span class="text-sm" :class="username ? 'text-body-text' : 'text-body-text-disabled'">
+        <span class="text-sm truncate max-w-[50vw]" :class="username ? 'text-body-text' : 'text-body-text-disabled'">
           {{ username || t("pages.home.set_username") }}
         </span>
       </button>

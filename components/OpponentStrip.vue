@@ -29,7 +29,7 @@ const MAX_VISIBLE_TILES = 14;
         <span class="text-xs font-medium whitespace-nowrap">
           {{ opponent.username }}
         </span>
-        <span v-if="reconnectingPlayers?.has(opponent.username)" class="text-[9px] text-yellow-600 whitespace-nowrap">
+        <span v-if="reconnectingPlayers?.has(opponent.username)" class="text-[10px] text-yellow-600 whitespace-nowrap">
           reconnecting...
         </span>
       </div>

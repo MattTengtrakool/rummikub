@@ -15,13 +15,11 @@ export type PlayerDto = {
   canStartGame: boolean;
   canDrawCard: boolean;
   canPass: boolean;
-  canPlaceCardAlone: boolean;
-  canPlaceCardInCombination: boolean;
-  canMoveCardAlone: boolean;
-  canMoveCardToCombination: boolean;
+  canPlaceCard: boolean;
+  canMoveCard: boolean;
+  canReturnCard: boolean;
   canCancelTurnModifications: boolean;
   canUndoLastAction: boolean;
   canEndTurn: boolean;
-  canInteractWithCombination: Array<boolean>;
   handValue: number;
 };

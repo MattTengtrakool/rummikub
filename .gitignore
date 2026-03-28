@@ -18,6 +18,9 @@ logs
 .fleet
 .idea
 
+# Cursor
+.cursor
+
 # Local env files
 .env
 .env.*

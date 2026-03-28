@@ -40,7 +40,7 @@ const handleClick = (e: MouseEvent) => {
     @click.prevent="handleClick"
     :type="href ? undefined : 'button'"
     :disabled="!href && disabled"
-    class="h-9 px-5 rounded-lg justify-center items-center gap-2 inline-flex transition-all duration-150"
+    class="h-9 px-3 md:px-5 rounded-lg justify-center items-center gap-2 inline-flex transition-all duration-150"
     :class="{
       'bg-button-bg-disabled text-button-text-disabled': disabled,
       'bg-body-text text-white hover:bg-black/80 shadow-sm hover:shadow-md active:scale-[0.97]': !disabled && type === 'filled',

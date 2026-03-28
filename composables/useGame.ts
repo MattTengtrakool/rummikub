@@ -3,7 +3,7 @@ import type {
   GameInfosDto,
   TimerSettings,
 } from "@/app/Game/application/Game";
-import type { CardPositionOnBoard } from "@/app/GameBoard/application/GameBoard";
+import type { BoardPosition } from "@/app/GameBoard/domain/dtos/gameBoard";
 import type { GameBoardDto } from "@/app/GameBoard/domain/dtos/gameBoard";
 import type { PlayerDto } from "@/app/Player/domain/dtos/player";
 import type {
@@ -18,7 +18,7 @@ import { setupGameSocket } from "@/logic/gameSocket";
 import { useSound } from "@/composables/useSound";
 
 type HighlightedCard = {
-  positionOnBoard?: CardPositionOnBoard;
+  positionOnBoard?: BoardPosition;
   indexInHand?: number;
 };
 
@@ -111,11 +111,9 @@ export const useGame = (gameId: any, username: any) => {
     drawCard,
     endTurn,
     pass,
-    moveCardAlone,
-    moveCardToCombination,
-    placeCardAlone,
-    placeCardInCombination,
-    returnCardToHand,
+    placeCard,
+    moveCard,
+    returnCard,
     moveCursor,
     undoLastAction: rawUndoLastAction,
     updateSettings,
@@ -272,13 +270,13 @@ export const useGame = (gameId: any, username: any) => {
 
       logAction(t(key, { name, count }));
     },
-    onPlayerMovedCard(player, cardPosition) {
+    onPlayerMovedCard(player, position) {
       if (player.id === selfPlayer.value?.id) {
         return;
       }
       play("card-place-opponent", 0.4);
       highlightedCard.value = {
-        positionOnBoard: cardPosition,
+        positionOnBoard: position,
       };
     },
     onCursorUpdate(cursor) {
@@ -359,11 +357,9 @@ export const useGame = (gameId: any, username: any) => {
   };
 
   const cardDraggingHandler = makeCardDraggingHandler({
-    placeCardAlone,
-    placeCardInCombination,
-    moveCardAlone,
-    moveCardToCombination,
-    returnCardToHand,
+    placeCard,
+    moveCard,
+    returnCard,
     onCardPlaced: () => play("card-place"),
   });
 

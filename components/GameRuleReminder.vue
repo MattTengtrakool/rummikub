@@ -6,7 +6,7 @@
       <XMarkIcon class="size-5 text-body-text" @click="hide" />
     </button>
 
-    <div class="flex flex-col gap-1 text-sm">
+    <div class="flex flex-col gap-1 text-sm min-w-0 break-words">
       <p class="font-bold">{{ title }}</p>
 
       <slot />

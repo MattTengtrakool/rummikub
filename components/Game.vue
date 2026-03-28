@@ -39,7 +39,7 @@
     "
   >
     <header class="bg-white/80 backdrop-blur-sm shadow-sm relative z-10">
-      <nav class="flex gap-1.5 md:gap-2 px-2 py-2 md:px-4 md:py-2.5 items-center justify-between">
+      <nav class="flex gap-1 md:gap-2 px-2 py-2 md:px-4 md:py-2.5 items-center justify-between overflow-hidden">
         <div class="flex items-center gap-2 md:gap-3 min-w-0">
           <div v-if="game.gameInfos.value.state === 'created'" class="flex items-center gap-1.5">
             <div class="size-6 rounded-full bg-separator flex items-center justify-center">
@@ -54,7 +54,7 @@
             >
               {{ t("pages.game.your_turn") }}
             </span>
-            <span v-else class="text-xs md:text-sm font-medium text-body-text bg-separator px-2 md:px-3 py-1 rounded-full whitespace-nowrap truncate">
+            <span v-else class="text-xs md:text-sm font-medium text-body-text bg-separator px-2 md:px-3 py-1 rounded-full truncate max-w-[45vw] md:max-w-none">
               {{ t("pages.game.turn_of", { username: game.gameInfos.value.currentPlayerUsername }) }}
             </span>
           </template>
@@ -89,11 +89,15 @@
         </div>
       </nav>
 
-      <OpponentStrip
+      <CollapsibleSection
         v-if="game.gameInfos.value.state === 'started' && game.opponents.value.length > 0"
-        :opponents="game.opponents.value"
-        :reconnecting-players="game.reconnectingPlayers.value"
-      />
+        handle-position="bottom"
+      >
+        <OpponentStrip
+          :opponents="game.opponents.value"
+          :reconnecting-players="game.reconnectingPlayers.value"
+        />
+      </CollapsibleSection>
     </header>
 
     <div v-if="game.gameInfos.value.state === 'created'" class="grow flex flex-col items-center justify-center text-center gap-6 p-4">
@@ -110,11 +114,11 @@
         </div>
         <button
           @click="copyLink"
-          class="flex items-center gap-1.5 text-xs text-body-text-disabled hover:text-body-text transition-colors mt-1"
+          class="flex items-center gap-1.5 text-xs text-body-text-disabled hover:text-body-text transition-colors mt-1 max-w-full"
         >
-          <CheckIcon v-if="linkCopied" class="size-3.5 text-button-text-success" />
-          <ClipboardDocumentIcon v-else class="size-3.5" />
-          {{ linkCopied ? t("pages.game.copied") : gameLink }}
+          <CheckIcon v-if="linkCopied" class="size-3.5 shrink-0 text-button-text-success" />
+          <ClipboardDocumentIcon v-else class="size-3.5 shrink-0" />
+          <span class="truncate">{{ linkCopied ? t("pages.game.copied") : gameLink }}</span>
         </button>
       </div>
 
@@ -149,15 +153,23 @@
       </div>
     </div>
 
-    <GameBoard
-      v-if="game.gameInfos.value.state!=='created'"
-      :highlighted-card="game.highlightedCard.value?.positionOnBoard"
-      :game-board="game.gameBoard.value"
-      :card-dragging-handler="game.cardDraggingHandler"
-      :player="game.selfPlayer.value"
-      :remote-cursors="game.remoteCursors.value"
-      :move-cursor="game.moveCursor"
-    ></GameBoard>
+    <div v-if="game.gameInfos.value.state!=='created'" class="flex-1 flex flex-col relative min-h-0">
+      <GameBoard
+        :highlighted-card="game.highlightedCard.value?.positionOnBoard"
+        :game-board="game.gameBoard.value"
+        :card-dragging-handler="game.cardDraggingHandler"
+        :player="game.selfPlayer.value"
+        :remote-cursors="game.remoteCursors.value"
+        :move-cursor="game.moveCursor"
+      />
+
+      <ActivityChat
+        class="absolute bottom-2 left-2 z-50 pointer-events-none"
+        :feed="game.feedEntries.value"
+        @send="game.sendChatMessage($event)"
+        @react="game.sendReaction($event)"
+      />
+    </div>
 
     <FloatingReaction
       v-for="reaction in game.reactions.value"
@@ -167,13 +179,6 @@
     />
 
     <div v-if="game.gameInfos.value.state !== 'created'" class="relative">
-      <ActivityChat
-        class="absolute bottom-full w-full z-10"
-        :feed="game.feedEntries.value"
-        @send="game.sendChatMessage($event)"
-        @react="game.sendReaction($event)"
-      />
-
     <HeartsRain v-if="showHearts" :key="heartsKey" />
 
       <PlayerDeck

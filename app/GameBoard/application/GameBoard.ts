@@ -1,45 +1,37 @@
 import type { CardDto } from "@/app/Card/domain/dtos/card";
-import {
-  Combination,
-  type ICombination,
-} from "@/app/Combination/application/Combination";
 import type { CombinationDto } from "@/app/Combination/domain/dtos/combination";
-import { areEqual } from "@/app/Combination/domain/gamerules/areEqual";
 import { cardCombinationsPoints } from "@/app/Combination/domain/gamerules/points";
-import type { GameBoardDto } from "@/app/GameBoard/domain/dtos/gameBoard";
+import type {
+  BoardPosition,
+  GameBoardDto,
+  PlacedTileDto,
+} from "@/app/GameBoard/domain/dtos/gameBoard";
+import {
+  detectCombinations,
+  type DetectedCombination,
+} from "@/app/GameBoard/domain/gamerules/detectCombinations";
+import {
+  hasCollision,
+  shiftTilesForInsertion,
+  snapPosition,
+} from "@/app/GameBoard/domain/gamerules/snapPosition";
 
-export type CardPositionInCombination = number;
-export type CombinationPositionOnBoard = number;
-export type CardPositionOnBoard = {
-  combinationIndex: CombinationPositionOnBoard;
-  cardIndex: CardPositionInCombination;
-};
+export type { BoardPosition } from "@/app/GameBoard/domain/dtos/gameBoard";
 
 export interface IGameBoard {
   beginTurn(): void;
 
-  placeCardAlone(card: CardDto): CombinationPositionOnBoard;
+  placeCard(card: CardDto, position: BoardPosition): BoardPosition;
 
-  placeCardInCombination(card: CardDto, destination: CardPositionOnBoard): void;
+  moveCard(from: BoardPosition, to: BoardPosition): BoardPosition;
 
-  moveCardAlone(source: CardPositionOnBoard): CombinationPositionOnBoard;
+  removeCard(position: BoardPosition): CardDto;
 
-  moveCardToCombination(
-    source: CardPositionOnBoard,
-    destination: CardPositionOnBoard,
-  ): void;
-
-  removeCardFromBoard(source: CardPositionOnBoard): CardDto;
-
-  wasCardOnBoardBeforeTurn(source: CardPositionOnBoard): boolean;
-
-  wasCombinationPlacedThisTurn(combinationIndex: number): boolean;
-
-  deleteEmptyCombinations(): void;
+  wasCardOnBoardBeforeTurn(position: BoardPosition): boolean;
 
   cancelTurnModifications(): void;
 
-  restoreFromSnapshot(combinations: ReadonlyArray<CombinationDto>): void;
+  restoreFromSnapshot(tiles: ReadonlyArray<PlacedTileDto>): void;
 
   hasModifications(): boolean;
 
@@ -56,150 +48,145 @@ export interface IGameBoard {
   toDto(): GameBoardDto;
 }
 
-type GameBoardProps = {
-  combinations?: Array<ICombination>;
+export type GameBoardProps = {
+  tiles?: PlacedTileDto[];
 };
 
+const POSITION_MATCH_THRESHOLD = 0.3;
+
+function findTileIndex(
+  tiles: PlacedTileDto[],
+  position: BoardPosition,
+): number {
+  return tiles.findIndex(
+    (t) =>
+      Math.abs(t.x - position.x) < POSITION_MATCH_THRESHOLD &&
+      Math.abs(t.y - position.y) < POSITION_MATCH_THRESHOLD,
+  );
+}
+
+function tilesToCombinationDtos(
+  combinations: DetectedCombination[],
+): CombinationDto[] {
+  return combinations.map((c) => ({
+    type: c.type,
+    cards: c.tiles.map((t) => t.card),
+  }));
+}
+
 export class GameBoard implements IGameBoard {
-  private combinations: Array<ICombination>;
-  private previousTurnCombinations: ReadonlyArray<CombinationDto> = [];
+  private tiles: PlacedTileDto[];
+  private previousTurnTiles: ReadonlyArray<PlacedTileDto> = [];
 
   constructor(props: GameBoardProps) {
-    this.combinations = props.combinations ?? [];
-    this.saveTurnCombinations();
+    this.tiles = props.tiles ? [...props.tiles] : [];
+    this.saveTurnTiles();
   }
 
   beginTurn(): void {
-    this.saveTurnCombinations();
+    this.saveTurnTiles();
   }
 
-  private saveTurnCombinations() {
-    this.previousTurnCombinations = Object.freeze([
-      ...this.toDto().combinations,
-    ]);
-  }
-
-  placeCardAlone(card: CardDto): CombinationPositionOnBoard {
-    this.combinations.push(new Combination({ cards: [card] }));
-
-    return this.combinations.length - 1;
-  }
-
-  placeCardInCombination(
-    card: CardDto,
-    destination: CardPositionOnBoard,
-  ): void {
-    this.combinations[destination.combinationIndex].addCardAt(
-      card,
-      destination.cardIndex,
+  private saveTurnTiles() {
+    this.previousTurnTiles = Object.freeze(
+      this.tiles.map((t) => ({ ...t })),
     );
   }
 
-  moveCardAlone(source: CardPositionOnBoard): CombinationPositionOnBoard {
-    const sourceCombi = this.combinations[source.combinationIndex];
+  placeCard(card: CardDto, position: BoardPosition): BoardPosition {
+    const snapped = snapPosition(position, this.tiles);
 
-    const card = sourceCombi.pickCardFrom(source.cardIndex);
+    if (hasCollision(snapped, this.tiles)) {
+      shiftTilesForInsertion(snapped, this.tiles);
 
-    this.combinations.push(new Combination({ cards: [card] }));
+      if (hasCollision(snapped, this.tiles)) {
+        throw new Error("Position is occupied");
+      }
+    }
 
-    this.deleteEmptyCombinations();
-
-    return this.combinations.length - 1;
+    this.tiles.push({ x: snapped.x, y: snapped.y, card });
+    return snapped;
   }
 
-  moveCardToCombination(
-    source: CardPositionOnBoard,
-    destination: CardPositionOnBoard,
-  ): void {
-    const sourceCombi = this.combinations[source.combinationIndex];
-    const destinationCombi = this.combinations[destination.combinationIndex];
+  moveCard(from: BoardPosition, to: BoardPosition): BoardPosition {
+    const idx = findTileIndex(this.tiles, from);
+    if (idx === -1) throw new Error("No tile at source position");
 
-    destinationCombi.addCardAt(
-      sourceCombi.pickCardFrom(source.cardIndex),
-      destination.cardIndex,
-    );
+    const card = this.tiles[idx].card;
+    this.tiles.splice(idx, 1);
 
-    this.deleteEmptyCombinations();
+    const snapped = snapPosition(to, this.tiles);
+
+    if (hasCollision(snapped, this.tiles)) {
+      shiftTilesForInsertion(snapped, this.tiles);
+
+      if (hasCollision(snapped, this.tiles)) {
+        this.tiles.push({ x: from.x, y: from.y, card });
+        throw new Error("Destination is occupied");
+      }
+    }
+
+    this.tiles.push({ x: snapped.x, y: snapped.y, card });
+    return snapped;
   }
 
-  removeCardFromBoard(source: CardPositionOnBoard): CardDto {
-    const combo = this.combinations[source.combinationIndex];
-    const card = combo.pickCardFrom(source.cardIndex);
-    this.deleteEmptyCombinations();
-    return card;
+  removeCard(position: BoardPosition): CardDto {
+    const idx = findTileIndex(this.tiles, position);
+    if (idx === -1) throw new Error("No tile at position");
+
+    const [removed] = this.tiles.splice(idx, 1);
+    return removed.card;
   }
 
-  wasCardOnBoardBeforeTurn(source: CardPositionOnBoard): boolean {
-    const card = this.combinations[source.combinationIndex].toDto().cards[source.cardIndex];
-    if (!card) return false;
-    return this.previousTurnCombinations.some((combo) =>
-      combo.cards.some(
-        (c) =>
-          c.number === card.number &&
-          c.color === card.color &&
-          c.duplicata === card.duplicata,
-      ),
+  wasCardOnBoardBeforeTurn(position: BoardPosition): boolean {
+    const tileIdx = findTileIndex([...this.tiles], position);
+    if (tileIdx === -1) return false;
+
+    const tile = this.tiles[tileIdx];
+    return this.previousTurnTiles.some(
+      (t) =>
+        t.card.number === tile.card.number &&
+        t.card.color === tile.card.color &&
+        t.card.duplicata === tile.card.duplicata,
     );
   }
 
   cancelTurnModifications(): void {
     this.throwIfTurnHasNotStarted();
-
-    this.combinations = this.previousTurnCombinations!.map(
-      (combinationDto) =>
-        new Combination({
-          cards: combinationDto.cards,
-        }),
-    );
-
-    this.saveTurnCombinations();
+    this.tiles = this.previousTurnTiles.map((t) => ({ ...t }));
+    this.saveTurnTiles();
   }
 
-  restoreFromSnapshot(combinations: ReadonlyArray<CombinationDto>): void {
-    this.combinations = combinations.map(
-      (dto) => new Combination({ cards: dto.cards }),
-    );
+  restoreFromSnapshot(tiles: ReadonlyArray<PlacedTileDto>): void {
+    this.tiles = tiles.map((t) => ({ ...t }));
   }
 
   hasModifications(): boolean {
     return (
-      JSON.stringify(this.previousTurnCombinations) !==
-      JSON.stringify(
-        this.combinations.map((combination) => combination.toDto()),
-      )
+      JSON.stringify(this.previousTurnTiles) !==
+      JSON.stringify(this.tiles)
     );
-  }
-
-  wasCombinationPlacedThisTurn(combinationIndex: number): boolean {
-    const combiDto = this.combinations[combinationIndex].toDto();
-
-    const wasCombinationInPreviousTurn = this.previousTurnCombinations.some(
-      (previousTurnCombiDto) => areEqual(combiDto, previousTurnCombiDto),
-    );
-
-    return !wasCombinationInPreviousTurn;
   }
 
   isEmpty(): boolean {
-    return this.combinations.length === 0;
+    return this.tiles.length === 0;
   }
 
   isValid(): boolean {
-    return this.combinations.every((combination) => combination.isValid());
-  }
-
-  deleteEmptyCombinations(): void {
-    this.combinations = this.combinations.filter((combi) => combi.isNotEmpty());
+    if (this.tiles.length === 0) return true;
+    const combos = detectCombinations(this.tiles);
+    return combos.every((c) => c.type !== "invalid");
   }
 
   turnPoints(): number {
     this.throwIfTurnHasNotStarted();
 
-    const previousTurnPoints = cardCombinationsPoints(
-      [...this.previousTurnCombinations]!,
+    const prevCombos = tilesToCombinationDtos(
+      detectCombinations(this.previousTurnTiles),
     );
+    const previousPoints = cardCombinationsPoints(prevCombos);
 
-    return this.points() - previousTurnPoints;
+    return this.points() - previousPoints;
   }
 
   endTurn(): void {
@@ -208,7 +195,7 @@ export class GameBoard implements IGameBoard {
   }
 
   private throwIfTurnHasNotStarted() {
-    if (!this.previousTurnCombinations) {
+    if (!this.previousTurnTiles) {
       throw new Error("Turn has not started");
     }
   }
@@ -220,19 +207,25 @@ export class GameBoard implements IGameBoard {
   }
 
   points(): number {
-    return cardCombinationsPoints(
-      this.combinations.map((combination) => combination.toDto()),
+    const combos = tilesToCombinationDtos(
+      detectCombinations(this.tiles),
     );
+    return cardCombinationsPoints(combos);
   }
 
   toDto(): GameBoardDto {
+    const detected = detectCombinations(this.tiles);
+    const combinationDtos = tilesToCombinationDtos(detected);
+
     return {
+      tiles: this.tiles.map((t) => ({ ...t })),
+      combinations: detected.map((c) => ({
+        type: c.type,
+        tiles: c.tiles.map((t) => ({ ...t })),
+      })),
       isValid: this.isValid(),
-      combinations: [
-        ...this.combinations.map((combination) => combination.toDto()),
-      ],
       hasModifications: this.hasModifications(),
-      points: this.points(),
+      points: cardCombinationsPoints(combinationDtos),
       turnPoints: this.turnPoints(),
     };
   }

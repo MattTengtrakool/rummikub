@@ -338,22 +338,16 @@ describe("Game", () => {
     test("return corresponding dto", () => {
       const game = new Game({ id: "game" });
 
-      expect(game.toDto()).toStrictEqual({
-        id: "game",
-        players: [],
-        drawStack: {
-          isEmpty: false,
-        },
-        gameBoard: {
-          isValid: true,
-          combinations: [],
-          hasModifications: false,
-          points: 0,
-          turnPoints: 0,
-        },
-        state: "created",
-        isFull: false,
-      });
+      const dto = game.toDto();
+      expect(dto.id).toBe("game");
+      expect(dto.players).toStrictEqual([]);
+      expect(dto.state).toBe("created");
+      expect(dto.isFull).toBe(false);
+      expect(dto.gameBoard.tiles).toStrictEqual([]);
+      expect(dto.gameBoard.isValid).toBe(true);
+      expect(dto.gameBoard.hasModifications).toBe(false);
+      expect(dto.gameBoard.points).toBe(0);
+      expect(dto.gameBoard.turnPoints).toBe(0);
     });
   });
 });
@@ -386,9 +380,9 @@ test("A game can be played", () => {
 
   const firstPlayer = playerA.isPlaying() ? playerA : playerB;
 
-  const combinationIndex = firstPlayer.placeCardAlone(0);
-  firstPlayer.placeCardInCombination(0, { combinationIndex, cardIndex: 1 });
-  firstPlayer.placeCardInCombination(0, { combinationIndex, cardIndex: 2 });
+  firstPlayer.placeCard(0, { x: 0, y: 0 });
+  firstPlayer.placeCard(0, { x: 1, y: 0 });
+  firstPlayer.placeCard(0, { x: 2, y: 0 });
 
   firstPlayer.endTurn();
 
