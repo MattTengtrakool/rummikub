@@ -274,7 +274,10 @@ export function computeMoves(
   // Second pass: lay out all combos that need new positions
   for (const combo of combosToPlace) {
     const inPlace = tryExtendInPlace(combo, boardTiles, slotOccupied);
-    const { x: startX, y: row } = inPlace ?? findSlotForCombo(combo.cards.length, slotOccupied);
+    const slot = inPlace
+      ? { x: inPlace.startX, y: inPlace.row }
+      : findSlotForCombo(combo.cards.length, slotOccupied);
+    const { x: startX, y: row } = slot;
 
     const comboDesc = combo.cards.map((c) => `${c.color[0]}${c.number}`).join(",");
     console.log(`[AI-PLACE]   combo [${comboDesc}] len=${combo.cards.length} → ${inPlace ? "extend-in-place" : "new-slot"} (${startX},${row}), hand=${combo.handTileIndices.length} board=${combo.boardTileIndices.length}`);
