@@ -1,11 +1,12 @@
 import type { IPlayer } from "@/app/Player/application/Player";
 import type { IGame } from "@/app/Game/application/Game";
 import type { PlacedTileDto } from "@/app/GameBoard/domain/dtos/gameBoard";
-import type { AIDifficulty, AITurnResult, AIMove } from "@/app/AI/domain/types";
+import type { AIDifficulty, AITurnResult } from "@/app/AI/domain/types";
 import { AI_THINKING_DELAY, AI_MOVE_DELAY } from "@/app/AI/domain/types";
 import { easyStrategy } from "@/app/AI/application/strategies/easyStrategy";
 import { mediumStrategy } from "@/app/AI/application/strategies/mediumStrategy";
 import { hardStrategy } from "@/app/AI/application/strategies/hardStrategy";
+import { detectCombinations } from "@/app/GameBoard/domain/gamerules/detectCombinations";
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -38,10 +39,12 @@ export type AITurnCallbacks = {
 };
 
 /**
- * Execute an AI player's turn with animated delays between moves.
+ * Execute an AI player's turn with progressive animation.
  *
- * This function is async: it waits between moves so the human player
- * can see tiles being placed one by one.
+ * The target board state is pre-validated, then applied incrementally:
+ * board tiles are rearranged one by one, hand tiles placed one by one.
+ * Each step directly sets the board state (no collision/snap logic) so
+ * physical execution can never fail.
  */
 export async function executeAITurn(
   player: IPlayer,
@@ -89,74 +92,84 @@ export async function executeAITurn(
     return;
   }
 
-  const moveMoves = turnResult.moves.filter((m) => m.type === "moveCard");
-  const placeMoves = turnResult.moves.filter((m) => m.type === "placeCard");
-  console.log(`[AI-EXEC] executing: ${moveMoves.length} moveCard + ${placeMoves.length} placeCard`);
-
-  let remaining = [...moveMoves];
-  const MAX_RETRIES = 3;
-  let totalMoveOk = 0;
-  let totalMoveFail = 0;
-  for (let attempt = 0; attempt <= MAX_RETRIES && remaining.length > 0; attempt++) {
-    const failed: typeof remaining = [];
-    for (const move of remaining) {
-      if (!game.isStarted() || !player.isPlaying()) return;
-      try {
-        if (move.type === "moveCard" && player.canMoveCard()) {
-          const snapped = player.moveCard(move.from, move.to);
-          totalMoveOk++;
-          callbacks.onMoveExecuted(snapped);
-          await delay(AI_MOVE_DELAY);
-        }
-      } catch (e) {
-        console.log(`[AI-EXEC]   moveCard FAILED (attempt ${attempt}): (${move.from.x},${move.from.y})→(${move.to.x},${move.to.y}): ${e}`);
-        totalMoveFail++;
-        failed.push(move);
-      }
+  // ── Pre-validate the target board state ──
+  const { resultingBoard, moves } = turnResult;
+  const combos = detectCombinations(resultingBoard);
+  const hasInvalid = combos.some((c) => c.type === "invalid");
+  if (hasInvalid) {
+    const invalidDesc = combos
+      .filter((c) => c.type === "invalid")
+      .map((c) => `[${c.tiles.map((t) => `${t.card.color[0]}${t.card.number}@(${t.x},${t.y})`).join(",")}]`)
+      .join(", ");
+    console.log(`[AI-EXEC] PRE-CHECK FAILED: target board has invalid combos: ${invalidDesc}`);
+    console.log(`[AI-EXEC] → skipping plan, drawing instead`);
+    if (player.canDrawCard()) {
+      player.drawCard();
+    } else if (player.canPass()) {
+      player.pass();
     }
-    if (failed.length === remaining.length) {
-      console.log(`[AI-EXEC]   moveCard retry stuck, ${failed.length} permanently failed`);
-      break;
-    }
-    remaining = failed;
+    callbacks.onTurnComplete();
+    return;
   }
-  console.log(`[AI-EXEC] moveCard done: ${totalMoveOk} ok, ${totalMoveFail} failed`);
 
-  let placeOk = 0;
-  let placeFail = 0;
+  const moveMoves = moves.filter((m) => m.type === "moveCard");
+  const placeMoves = moves.filter((m) => m.type === "placeCard");
+  console.log(`[AI-EXEC] animating: ${moveMoves.length} moveCard + ${placeMoves.length} placeCard`);
+
+  // ── Phase 1: animate moveCards (board tile rearrangement) ──
+  let animBoard = boardTiles.map((t) => ({ ...t }));
+
+  for (const move of moveMoves) {
+    if (!game.isStarted() || !player.isPlaying()) return;
+    if (move.type !== "moveCard") continue;
+
+    const idx = animBoard.findIndex(
+      (t) =>
+        Math.abs(t.x - move.from.x) < 0.3 &&
+        Math.abs(t.y - move.from.y) < 0.3,
+    );
+    if (idx !== -1) {
+      const tile = animBoard[idx];
+      animBoard = animBoard.filter((_, i) => i !== idx);
+      animBoard.push({ x: move.to.x, y: move.to.y, card: tile.card });
+    }
+
+    player.setBoardState(animBoard);
+    callbacks.onMoveExecuted(move.to);
+    await delay(AI_MOVE_DELAY);
+  }
+
+  // ── Phase 2: animate placeCards (hand tiles appearing one by one) ──
   for (const move of placeMoves) {
     if (!game.isStarted() || !player.isPlaying()) return;
-    try {
-      if (move.type === "placeCard" && player.canPlaceCard()) {
-        const snapped = player.placeCard(move.cardIndex, move.position);
-        placeOk++;
-        callbacks.onMoveExecuted(snapped);
-        await delay(AI_MOVE_DELAY);
-      }
-    } catch (e) {
-      console.log(`[AI-EXEC]   placeCard FAILED: idx=${move.cardIndex} → (${move.position.x},${move.position.y}): ${e}`);
-      placeFail++;
-      continue;
-    }
+    if (move.type !== "placeCard") continue;
+
+    const card = player.toDto().cards[move.cardIndex];
+    if (!card) continue;
+
+    player.removeHandCard(move.cardIndex);
+    animBoard.push({ x: move.position.x, y: move.position.y, card });
+    player.setBoardState(animBoard);
+    callbacks.onMoveExecuted(move.position);
+    await delay(AI_MOVE_DELAY);
   }
-  console.log(`[AI-EXEC] placeCard done: ${placeOk} ok, ${placeFail} failed`);
+
+  // ── Final: ensure board is exactly the target state ──
+  player.setBoardState(resultingBoard);
 
   if (!game.isStarted() || !player.isPlaying()) return;
 
+  // ── End the turn ──
   const canEnd = player.canEndTurn();
   console.log(`[AI-EXEC] canEndTurn=${canEnd}`);
-  if (!canEnd) {
-    const dto = player.toDto();
-    console.log(`[AI-EXEC] canEndTurn detail: isPlaying=${dto.isPlaying}, hasStarted=${dto.hasStarted}`);
-    callbacks.onDiagnose?.();
-  }
   try {
     if (canEnd) {
       player.endTurn();
       console.log(`[AI-EXEC] ✓ turn ended successfully`);
       callbacks.onTurnComplete();
     } else {
-      console.log(`[AI-EXEC] ✗ cannot end turn → cancelling + draw`);
+      console.log(`[AI-EXEC] ✗ canEndTurn=false despite pre-validated plan`);
+      callbacks.onDiagnose?.();
       player.cancelTurnModifications();
       if (player.canDrawCard()) {
         player.drawCard();

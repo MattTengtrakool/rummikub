@@ -1,4 +1,4 @@
-import type { BoardPosition } from "@/app/GameBoard/domain/dtos/gameBoard";
+import type { BoardPosition, PlacedTileDto } from "@/app/GameBoard/domain/dtos/gameBoard";
 
 export type AIDifficulty = "easy" | "medium" | "hard";
 
@@ -7,7 +7,7 @@ export type AIMove =
   | { type: "moveCard"; from: BoardPosition; to: BoardPosition };
 
 export type AITurnResult =
-  | { action: "play"; moves: AIMove[] }
+  | { action: "play"; moves: AIMove[]; resultingBoard: PlacedTileDto[] }
   | { action: "draw" }
   | { action: "pass" };
 

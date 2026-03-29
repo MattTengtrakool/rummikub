@@ -87,7 +87,7 @@ function startAIGame() {
           <span class="text-xs text-body-text-disabled w-14">Duration</span>
           <div class="flex gap-1.5 flex-1">
             <button
-              v-for="sec in [30, 60, 90, 120]"
+              v-for="sec in [30, 45, 60, 75, 90, 120]"
               :key="sec"
               @click="timerDuration = sec"
               class="flex-1 h-7 rounded-md text-xs font-medium transition-colors"

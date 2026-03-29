@@ -24,10 +24,12 @@ export function easyStrategy(
 
   const allMoves: AIMove[] = [];
   const usedHandIndices = new Set<number>();
+  let currentBoard: PlacedTileDto[] = [...boardTiles];
 
   if (result.handTilesUsed > 0) {
-    const { moves } = computeMoves(result, handCards, boardTiles);
+    const { moves, resultingBoard } = computeMoves(result, handCards, boardTiles);
     allMoves.push(...moves);
+    currentBoard = resultingBoard;
 
     for (const combo of result.combinations) {
       for (const idx of combo.handTileIndices) {
@@ -37,13 +39,22 @@ export function easyStrategy(
   }
 
   if (hasStarted) {
-    const extensions = findExtensions(handCards, boardTiles, usedHandIndices);
-    allMoves.push(...extensions.moves);
+    let extHand = handCards.filter((_, i) => !usedHandIndices.has(i));
+    const ext = findExtensions(extHand, currentBoard);
+    allMoves.push(...ext.moves);
+    for (const move of ext.moves) {
+      if (move.type === "placeCard") {
+        const card = extHand[move.cardIndex];
+        currentBoard = [...currentBoard, { x: move.position.x, y: move.position.y, card }];
+        extHand = [...extHand];
+        extHand.splice(move.cardIndex, 1);
+      }
+    }
   }
 
   if (allMoves.length === 0) {
     return { action: "draw" };
   }
 
-  return { action: "play", moves: allMoves };
+  return { action: "play", moves: allMoves, resultingBoard: currentBoard };
 }

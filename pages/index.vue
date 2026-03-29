@@ -31,7 +31,7 @@
         </div>
       </div>
       <p v-if="gamesPlayed > 0" class="text-sm text-body-text-disabled tabular-nums">
-        {{ t("pages.home.games_played", gamesPlayed, { n: gamesPlayed.toLocaleString() }) }}
+        {{ gamesPlayed.toLocaleString() }} {{ t("pages.home.games_played", gamesPlayed) }}
       </p>
     </div>
 

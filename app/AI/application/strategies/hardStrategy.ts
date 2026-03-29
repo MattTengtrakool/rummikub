@@ -15,7 +15,7 @@ function runIterativeExtensions(
   board: ReadonlyArray<PlacedTileDto>,
   moves: AIMove[],
   maxPasses: number = 5,
-): void {
+): PlacedTileDto[] {
   let extHand = [...hand];
   let extBoard = [...board];
   for (let pass = 0; pass < maxPasses && extHand.length > 0; pass++) {
@@ -29,6 +29,7 @@ function runIterativeExtensions(
       }
     }
   }
+  return extBoard;
 }
 
 /**
@@ -47,7 +48,7 @@ export async function hardStrategy(
 ): Promise<AITurnResult> {
   console.log(`[AI-HARD] start: hand=${handCards.length}, board=${boardTiles.length}, hasStarted=${hasStarted}`);
 
-  type Candidate = { moves: AIMove[]; handTiles: number; label: string };
+  type Candidate = { moves: AIMove[]; handTiles: number; label: string; board: PlacedTileDto[] };
   const candidates: Candidate[] = [];
 
   // ── Approach 1: full board rearrangement ──
@@ -68,10 +69,9 @@ export async function hardStrategy(
       }
 
       const remainingHand = handCards.filter((_, i) => !usedHandIndices.has(i));
-      runIterativeExtensions(remainingHand, resultingBoard, moves);
+      const finalBoard = runIterativeExtensions(remainingHand, resultingBoard, moves);
 
-      const total = countHandTilesInMoves(moves) + moves.filter((m) => m.type === "moveCard").length * 0;
-      candidates.push({ moves, handTiles: countHandTilesInMoves(moves), label: "full-rearrange" });
+      candidates.push({ moves, handTiles: countHandTilesInMoves(moves), label: "full-rearrange", board: finalBoard });
       console.log(`[AI-HARD] approach 1 total: ${countHandTilesInMoves(moves)} hand tiles placed`);
     }
   }
@@ -118,11 +118,11 @@ export async function hardStrategy(
     }
 
     if (started && currentHand.length > 0) {
-      runIterativeExtensions(currentHand, currentBoard, moves);
+      currentBoard = runIterativeExtensions(currentHand, currentBoard, moves);
     }
 
     if (moves.length > 0) {
-      candidates.push({ moves, handTiles: countHandTilesInMoves(moves), label: "iterative+extraction" });
+      candidates.push({ moves, handTiles: countHandTilesInMoves(moves), label: "iterative+extraction", board: currentBoard });
       console.log(`[AI-HARD] approach 2 total: ${countHandTilesInMoves(moves)} hand tiles placed`);
     }
   }
@@ -136,5 +136,5 @@ export async function hardStrategy(
   candidates.sort((a, b) => b.handTiles - a.handTiles);
   const best = candidates[0];
   console.log(`[AI-HARD] → best: ${best.label} with ${best.handTiles} hand tiles, ${best.moves.length} total moves`);
-  return { action: "play", moves: best.moves };
+  return { action: "play", moves: best.moves, resultingBoard: best.board };
 }

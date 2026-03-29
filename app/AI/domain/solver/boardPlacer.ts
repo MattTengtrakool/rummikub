@@ -2,6 +2,7 @@ import type { CardDto } from "@/app/Card/domain/dtos/card";
 import type { BoardPosition, PlacedTileDto } from "@/app/GameBoard/domain/dtos/gameBoard";
 import type { AIMove } from "@/app/AI/domain/types";
 import type { SolverResult } from "@/app/AI/domain/solver/solver";
+import { detectCombinations } from "@/app/GameBoard/domain/gamerules/detectCombinations";
 
 function cardKey(card: CardDto): string {
   return `${card.color}-${card.number}-${card.duplicata}`;
@@ -140,6 +141,72 @@ function isAlreadyArranged(tiles: ReadonlyArray<PlacedTileDto>): boolean {
   return true;
 }
 
+/**
+ * Try to keep a combo's existing board tiles at their current positions
+ * and only add hand tiles at the edges (left/right extension).
+ *
+ * Returns the anchor position if extension-in-place is viable, or null
+ * to fall back to full relayout.
+ */
+function tryExtendInPlace(
+  combo: SolverResult["combinations"][0],
+  boardTiles: ReadonlyArray<PlacedTileDto>,
+  slotOccupied: ReadonlyArray<PlacedTileDto>,
+): { startX: number; row: number } | null {
+  if (combo.boardTileIndices.length === 0) return null;
+
+  const comboBoard = combo.boardTileIndices.map((idx) => boardTiles[idx]);
+  if (!isAlreadyArranged(comboBoard)) return null;
+
+  const usedBoard = new Set<number>();
+  const cardSources: ("board" | "hand")[] = [];
+
+  for (const card of combo.cards) {
+    const key = cardKey(card);
+    const bIdx = combo.boardTileIndices.find(
+      (idx) => !usedBoard.has(idx) && cardKey(boardTiles[idx].card) === key,
+    );
+    if (bIdx !== undefined) {
+      cardSources.push("board");
+      usedBoard.add(bIdx);
+    } else {
+      cardSources.push("hand");
+    }
+  }
+
+  // Board tiles must be contiguous in the combo (no hand tiles between them)
+  const firstBoard = cardSources.indexOf("board");
+  const lastBoard = cardSources.lastIndexOf("board");
+  for (let i = firstBoard; i <= lastBoard; i++) {
+    if (cardSources[i] === "hand") return null;
+  }
+
+  const sorted = [...comboBoard].sort((a, b) => a.x - b.x);
+  const row = Math.round(sorted[0].y);
+  const existMinX = Math.round(sorted[0].x);
+  const startX = existMinX - firstBoard;
+
+  if (startX < 0 || startX + combo.cards.length > MAX_ROW_WIDTH) return null;
+
+  // Exclude the combo's own board tiles from collision/merge checks
+  const otherOccupied = slotOccupied.filter(
+    (t) =>
+      !comboBoard.some(
+        (bt) => Math.abs(bt.x - t.x) < 0.1 && Math.abs(bt.y - t.y) < 0.1,
+      ),
+  );
+
+  for (let i = 0; i < combo.cards.length; i++) {
+    if (cardSources[i] === "hand") {
+      if (!isPositionFree({ x: startX + i, y: row }, otherOccupied)) return null;
+    }
+  }
+
+  if (wouldMergeAtRange(startX, row, combo.cards.length, otherOccupied)) return null;
+
+  return { startX, row };
+}
+
 export type ComputeMovesResult = {
   moves: AIMove[];
   resultingBoard: PlacedTileDto[];
@@ -206,13 +273,11 @@ export function computeMoves(
 
   // Second pass: lay out all combos that need new positions
   for (const combo of combosToPlace) {
-    const { x: startX, y: row } = findSlotForCombo(
-      combo.cards.length,
-      slotOccupied,
-    );
+    const inPlace = tryExtendInPlace(combo, boardTiles, slotOccupied);
+    const { x: startX, y: row } = inPlace ?? findSlotForCombo(combo.cards.length, slotOccupied);
 
     const comboDesc = combo.cards.map((c) => `${c.color[0]}${c.number}`).join(",");
-    console.log(`[AI-PLACE]   combo [${comboDesc}] len=${combo.cards.length} → slot (${startX},${row}), hand=${combo.handTileIndices.length} board=${combo.boardTileIndices.length}`);
+    console.log(`[AI-PLACE]   combo [${comboDesc}] len=${combo.cards.length} → ${inPlace ? "extend-in-place" : "new-slot"} (${startX},${row}), hand=${combo.handTileIndices.length} board=${combo.boardTileIndices.length}`);
 
     for (let i = 0; i < combo.cards.length; i++) {
       const card = combo.cards[i];
@@ -265,6 +330,18 @@ export function computeMoves(
   }
 
   console.log(`[AI-PLACE] total moves: ${moves.filter(m => m.type === "moveCard").length} moveCard + ${moves.filter(m => m.type === "placeCard").length} placeCard`);
+
+  const postCombos = detectCombinations(resultBoard);
+  const invalid = postCombos.filter((c) => c.type === "invalid");
+  if (invalid.length > 0) {
+    const desc = invalid.map((c) =>
+      c.tiles.map((t) => `${t.card.color[0]}${t.card.number}@(${t.x},${t.y})`).join(","),
+    ).join(" | ");
+    console.log(`[AI-PLACE] WARNING: resultingBoard has ${invalid.length} invalid combo(s): ${desc}`);
+    console.log(`[AI-PLACE] → returning empty moves to prevent invalid execution`);
+    return { moves: [], resultingBoard: boardTiles.map((t) => ({ ...t })) };
+  }
+
   return { moves, resultingBoard: resultBoard };
 }
 

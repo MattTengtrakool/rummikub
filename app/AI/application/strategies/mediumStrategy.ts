@@ -76,6 +76,7 @@ export async function mediumStrategy(
         }
       }
     }
+    currentBoard = extBoard;
   }
 
   console.log(`[AI-MED] → ${allMoves.length > 0 ? `playing ${allMoves.length} moves` : "drawing"}`);
@@ -83,5 +84,5 @@ export async function mediumStrategy(
     return { action: "draw" };
   }
 
-  return { action: "play", moves: allMoves };
+  return { action: "play", moves: allMoves, resultingBoard: currentBoard };
 }

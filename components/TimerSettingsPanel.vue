@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { TimerSettings } from "@/app/Game/application/Game";
-import { ClockIcon } from "@heroicons/vue/20/solid";
 
 const props = defineProps<{
   timerSettings: TimerSettings;
@@ -12,7 +11,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-const durationOptions = [30, 60, 90, 120];
+const durationOptions = [30, 45, 60, 75, 90, 120];
 
 const toggle = () => {
   emit("update", {
@@ -36,66 +35,65 @@ const setStrict = (strict: boolean) => {
 };
 </script>
 <template>
-  <div class="flex flex-col items-center gap-3 w-full max-w-xs">
-    <button
-      @click="toggle"
-      class="flex items-center gap-2 text-sm font-medium transition-colors"
-      :class="timerSettings.enabled ? 'text-body-text' : 'text-body-text-disabled'"
-    >
-      <ClockIcon class="size-4" />
-      {{ t("pages.game.timer.label") }}
-      <span
-        class="inline-flex items-center justify-center h-5 px-2 rounded-full text-xs font-bold transition-colors"
-        :class="timerSettings.enabled ? 'bg-body-text text-white' : 'bg-separator text-body-text-disabled'"
+  <div class="flex flex-col gap-3 w-full max-w-xs">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-medium text-body-text-disabled uppercase tracking-wider">{{ t("pages.game.timer.label") }}</span>
+      <button
+        @click="toggle"
+        class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
+        :class="timerSettings.enabled ? 'bg-body-text' : 'bg-separator'"
       >
-        {{ timerSettings.enabled ? "ON" : "OFF" }}
-      </span>
-    </button>
+        <span
+          class="inline-block size-3.5 transform rounded-full bg-white transition-transform"
+          :class="timerSettings.enabled ? 'translate-x-[18px]' : 'translate-x-[3px]'"
+        />
+      </button>
+    </div>
 
     <template v-if="timerSettings.enabled">
-      <div class="flex flex-col items-center gap-2">
-        <span class="text-xs text-body-text-disabled">{{ t("pages.game.timer.duration") }}</span>
-        <div class="flex gap-1.5">
+      <div class="flex items-center gap-3">
+        <span class="text-xs text-body-text-disabled w-14">{{ t("pages.game.timer.duration") }}</span>
+        <div class="flex gap-1.5 flex-1">
           <button
             v-for="seconds in durationOptions"
             :key="seconds"
             @click="setDuration(seconds)"
-            class="h-8 px-3 rounded-lg text-xs font-bold transition-colors"
+            class="flex-1 h-7 rounded-md text-xs font-medium transition-colors"
             :class="timerSettings.durationSeconds === seconds
               ? 'bg-body-text text-white'
-              : 'bg-button-bg text-body-text hover:bg-separator'"
+              : 'bg-black/[0.04] text-body-text hover:bg-black/[0.08]'"
           >
             {{ t("pages.game.timer.seconds", { n: seconds }) }}
           </button>
         </div>
       </div>
 
-      <div class="flex flex-col items-center gap-2">
-        <span class="text-xs text-body-text-disabled">{{ t("pages.game.timer.mode") }}</span>
-        <div class="flex gap-1.5">
+      <div class="flex items-center gap-3">
+        <span class="text-xs text-body-text-disabled w-14">{{ t("pages.game.timer.mode") }}</span>
+        <div class="flex gap-1.5 flex-1">
           <button
             @click="setStrict(false)"
-            class="h-8 px-3 rounded-lg text-xs font-bold transition-colors"
+            class="flex-1 h-7 rounded-md text-xs font-medium transition-colors"
             :class="!timerSettings.strict
               ? 'bg-body-text text-white'
-              : 'bg-button-bg text-body-text hover:bg-separator'"
+              : 'bg-black/[0.04] text-body-text hover:bg-black/[0.08]'"
           >
             {{ t("pages.game.timer.relaxed") }}
           </button>
           <button
             @click="setStrict(true)"
-            class="h-8 px-3 rounded-lg text-xs font-bold transition-colors"
+            class="flex-1 h-7 rounded-md text-xs font-medium transition-colors"
             :class="timerSettings.strict
               ? 'bg-body-text text-white'
-              : 'bg-button-bg text-body-text hover:bg-separator'"
+              : 'bg-black/[0.04] text-body-text hover:bg-black/[0.08]'"
           >
             {{ t("pages.game.timer.strict") }}
           </button>
         </div>
-        <span class="text-xs text-body-text-disabled">
-          {{ timerSettings.strict ? t("pages.game.timer.strict_description") : t("pages.game.timer.relaxed_description") }}
-        </span>
       </div>
+      <p class="text-xs text-body-text-disabled text-center">
+        {{ timerSettings.strict ? t("pages.game.timer.strict_description") : t("pages.game.timer.relaxed_description") }}
+      </p>
     </template>
   </div>
 </template>

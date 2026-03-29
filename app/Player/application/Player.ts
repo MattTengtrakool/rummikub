@@ -49,6 +49,12 @@ export interface IPlayer {
   isPlaying(): boolean;
   hasWon(): boolean;
   handValue(): number;
+  applyAITurn(
+    resultingBoard: ReadonlyArray<PlacedTileDto>,
+    handIndicesToRemove: number[],
+  ): void;
+  setBoardState(tiles: ReadonlyArray<PlacedTileDto>): void;
+  removeHandCard(index: number): void;
   toDto(): PlayerDto;
 }
 
@@ -193,6 +199,29 @@ export class Player implements IPlayer {
       !this.hasDrawnThisTurn &&
       this.turnHistory.length > 0
     );
+  }
+
+  applyAITurn(
+    resultingBoard: ReadonlyArray<PlacedTileDto>,
+    handIndicesToRemove: number[],
+  ): void {
+    const sorted = [...handIndicesToRemove].sort((a, b) => b - a);
+    const cards = [...this.cards];
+    for (const idx of sorted) {
+      cards.splice(idx, 1);
+    }
+    this.cards = Object.freeze(cards);
+    this.gameBoard.restoreFromSnapshot(resultingBoard);
+  }
+
+  setBoardState(tiles: ReadonlyArray<PlacedTileDto>): void {
+    this.gameBoard.restoreFromSnapshot(tiles);
+  }
+
+  removeHandCard(index: number): void {
+    const cards = [...this.cards];
+    cards.splice(index, 1);
+    this.cards = Object.freeze(cards);
   }
 
   private canStart(): boolean {
