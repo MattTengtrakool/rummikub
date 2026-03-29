@@ -71,8 +71,4 @@ export const app = {
     totalGamesPlayed++;
     saveStats({ totalGamesPlayed });
   },
-  setGamesPlayed(value: number) {
-    totalGamesPlayed = value;
-    saveStats({ totalGamesPlayed });
-  },
 };
