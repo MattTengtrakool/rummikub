@@ -7,7 +7,8 @@
         "join_game": "Join game",
         "code_join_game": "Game code",
         "or": "Or",
-        "see_rules": "See the game rules"
+        "see_rules": "See the game rules",
+        "games_played": "{n} game played! | {n} games played!"
     },
     "game": {
         "start": "Start the game",

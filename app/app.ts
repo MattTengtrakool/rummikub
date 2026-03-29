@@ -5,6 +5,8 @@ import { registerGameEvents } from "@/app/WebSocket/infrastructure/gameEvents";
 import type { WebSocketServer } from "@/app/WebSocket/infrastructure/types";
 import { Server as Engine } from "engine.io";
 import { Server } from "socket.io";
+import { readFileSync, writeFileSync, mkdirSync } from "fs";
+import { resolve } from "path";
 
 const engine = new Engine();
 const socketServer: WebSocketServer = new Server();
@@ -33,9 +35,44 @@ if (import.meta.dev) {
   });
 }
 
+const STATS_DIR = resolve(".data");
+const STATS_FILE = resolve(STATS_DIR, "stats.json");
+
+function loadStats(): { totalGamesPlayed: number } {
+  try {
+    const raw = readFileSync(STATS_FILE, "utf-8");
+    const data = JSON.parse(raw);
+    return { totalGamesPlayed: Number(data.totalGamesPlayed) || 0 };
+  } catch {
+    return { totalGamesPlayed: 0 };
+  }
+}
+
+function saveStats(stats: { totalGamesPlayed: number }) {
+  try {
+    mkdirSync(STATS_DIR, { recursive: true });
+    writeFileSync(STATS_FILE, JSON.stringify(stats));
+  } catch (e) {
+    console.error("Failed to persist stats:", e);
+  }
+}
+
+let totalGamesPlayed = loadStats().totalGamesPlayed;
+
 export const app = {
   engine,
   socketServer,
   gameRepository,
   gameManager,
+  get totalGamesPlayed() {
+    return totalGamesPlayed;
+  },
+  incrementGamesPlayed() {
+    totalGamesPlayed++;
+    saveStats({ totalGamesPlayed });
+  },
+  setGamesPlayed(value: number) {
+    totalGamesPlayed = value;
+    saveStats({ totalGamesPlayed });
+  },
 };

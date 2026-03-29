@@ -2,32 +2,37 @@
   <main
     class="h-dvh bg-body-bg text-body-text flex flex-col items-center justify-center px-4 relative"
   >
-    <div class="absolute top-4 left-4">
-      <button
-        v-if="!editingUsername"
-        @click="startEditingUsername"
-        class="flex items-center gap-2 hover:bg-black/5 rounded-full py-1.5 pl-1.5 pr-3 transition-colors"
-      >
-        <div class="size-7 rounded-full bg-separator flex items-center justify-center">
-          <UserCircleIcon class="size-5 text-body-text-disabled" />
+    <div class="absolute top-4 left-4 right-4 flex items-center justify-between">
+      <div>
+        <button
+          v-if="!editingUsername"
+          @click="startEditingUsername"
+          class="flex items-center gap-2 hover:bg-black/5 rounded-full py-1.5 pl-1.5 pr-3 transition-colors"
+        >
+          <div class="size-7 rounded-full bg-separator flex items-center justify-center">
+            <UserCircleIcon class="size-5 text-body-text-disabled" />
+          </div>
+          <span class="text-sm truncate max-w-[50vw]" :class="username ? 'text-body-text' : 'text-body-text-disabled'">
+            {{ username || t("pages.home.set_username") }}
+          </span>
+        </button>
+        <div v-else class="flex items-center gap-2 py-1.5 pl-1.5 pr-1.5">
+          <div class="size-7 rounded-full bg-separator flex items-center justify-center">
+            <UserCircleIcon class="size-5 text-body-text-disabled" />
+          </div>
+          <input
+            ref="usernameInput"
+            v-model="username"
+            @blur="editingUsername = false"
+            @keydown.enter="($event.target as HTMLInputElement).blur()"
+            :placeholder="t('pages.home.username')"
+            class="text-sm bg-transparent outline-none border-b border-body-text-disabled w-28"
+          />
         </div>
-        <span class="text-sm truncate max-w-[50vw]" :class="username ? 'text-body-text' : 'text-body-text-disabled'">
-          {{ username || t("pages.home.set_username") }}
-        </span>
-      </button>
-      <div v-else class="flex items-center gap-2 py-1.5 pl-1.5 pr-1.5">
-        <div class="size-7 rounded-full bg-separator flex items-center justify-center">
-          <UserCircleIcon class="size-5 text-body-text-disabled" />
-        </div>
-        <input
-          ref="usernameInput"
-          v-model="username"
-          @blur="editingUsername = false"
-          @keydown.enter="($event.target as HTMLInputElement).blur()"
-          :placeholder="t('pages.home.username')"
-          class="text-sm bg-transparent outline-none border-b border-body-text-disabled w-28"
-        />
       </div>
+      <p v-if="gamesPlayed > 0" class="text-sm text-body-text-disabled tabular-nums">
+        {{ t("pages.home.games_played", gamesPlayed) }}
+      </p>
     </div>
 
     <div class="mt-auto flex flex-col items-center gap-3">
@@ -116,6 +121,14 @@ useSeoMeta({
 const joinRoomId = ref("");
 const getJoinRoomUrl = computed(() => `/games/${joinRoomId.value}`);
 const joinRoom = () => navigateTo(getJoinRoomUrl.value);
+
+const gamesPlayed = ref(0);
+onMounted(async () => {
+  try {
+    const data = await $fetch<{ totalGamesPlayed: number }>("/stats");
+    gamesPlayed.value = data.totalGamesPlayed;
+  } catch {}
+});
 
 const editingUsername = ref(false);
 const usernameInput = ref<HTMLInputElement>();

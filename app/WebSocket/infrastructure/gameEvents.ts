@@ -10,6 +10,7 @@ import {
   type WebSocketNamespace,
   type WebSocketServerSocket,
 } from "@/app/WebSocket/infrastructure/types";
+import { app } from "@/app/app";
 
 const gameRoom = (game: IGame) => `${game.id}`;
 const playerRoom = (game: IGame, player: IPlayer | PlayerDto) =>
@@ -225,6 +226,7 @@ export const registerGameEvents = ({
       }
 
       game.start();
+      app.incrementGamesPlayed();
       emitGameUpdate(game);
       handlePostTurnTransition(game);
     });
@@ -437,6 +439,7 @@ export const registerGameEvents = ({
 
       if (!isReconnect && game.isAIGame() && game.canStart()) {
         game.start();
+        app.incrementGamesPlayed();
         emitGameUpdate(game);
         handlePostTurnTransition(game);
       }
