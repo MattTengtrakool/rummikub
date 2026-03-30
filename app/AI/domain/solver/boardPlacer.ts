@@ -63,9 +63,11 @@ function wouldMergeAtRange(
 type RowSlot = { row: number; candidates: number[] };
 
 /**
- * Build a list of candidate starting x positions per row.
- * For each row, find gaps and end-of-row positions where a combo of `length` fits
- * without collision or merge.
+ * Scan every position in every occupied row (plus empty rows between
+ * them) for slots where a combo of `length` tiles fits without
+ * collision or merge. This finds gaps left by extracted tiles, space
+ * at the start of rows, and space at the end — not just after the
+ * rightmost tile.
  */
 function findAllViableSlots(
   length: number,
@@ -73,24 +75,34 @@ function findAllViableSlots(
 ): RowSlot[] {
   if (occupiedTiles.length === 0) return [];
 
-  const rowMaxX = new Map<number, number>();
+  const rows = new Set<number>();
   for (const t of occupiedTiles) {
-    const row = Math.round(t.y);
-    const cur = rowMaxX.get(row) ?? -Infinity;
-    if (t.x > cur) rowMaxX.set(row, t.x);
+    rows.add(Math.round(t.y));
+  }
+
+  const sortedRows = [...rows].sort((a, b) => a - b);
+  const minRow = sortedRows[0];
+  const maxRow = sortedRows[sortedRows.length - 1];
+
+  // Also consider empty rows between occupied rows
+  for (let r = minRow; r <= maxRow; r++) {
+    rows.add(r);
   }
 
   const result: RowSlot[] = [];
 
-  for (const [row, maxX] of rowMaxX) {
-    const startX = maxX + 2;
-    if (startX + length > MAX_ROW_WIDTH) continue;
-
-    if (
-      isRangeFree(startX, row, length, occupiedTiles) &&
-      !wouldMergeAtRange(startX, row, length, occupiedTiles)
-    ) {
-      result.push({ row, candidates: [startX] });
+  for (const row of rows) {
+    const candidates: number[] = [];
+    for (let startX = 0; startX <= MAX_ROW_WIDTH - length; startX++) {
+      if (
+        isRangeFree(startX, row, length, occupiedTiles) &&
+        !wouldMergeAtRange(startX, row, length, occupiedTiles)
+      ) {
+        candidates.push(startX);
+      }
+    }
+    if (candidates.length > 0) {
+      result.push({ row, candidates });
     }
   }
 
@@ -240,12 +252,10 @@ export function computeMoves(
     .filter((_, idx) => !movedBoardIndices.has(idx))
     .map((t) => ({ ...t }));
 
-  // Slot occupancy includes ALL current board tile positions. During
-  // execution, moved tiles still physically sit at their old positions
-  // until their moveCard runs. By treating those as occupied, every
-  // move target is guaranteed to be truly free on the current board,
-  // regardless of execution order.
-  const slotOccupied: PlacedTileDto[] = boardTiles.map((t) => ({ ...t }));
+  // Only staying tiles occupy slots initially. Tiles being rearranged
+  // free their positions so new combos can reuse them instead of always
+  // expanding downward. Kept-in-place combos are added below.
+  const slotOccupied: PlacedTileDto[] = [...stayingTiles];
 
   // Resulting board tracks only final positions (for iterative passes)
   const resultBoard: PlacedTileDto[] = [...stayingTiles];
@@ -262,6 +272,7 @@ export function computeMoves(
       if (isAlreadyArranged(tiles)) {
         for (const t of tiles) {
           resultBoard.push({ x: t.x, y: t.y, card: t.card });
+          slotOccupied.push({ x: t.x, y: t.y, card: t.card });
         }
         continue;
       }
