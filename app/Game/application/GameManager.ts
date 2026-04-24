@@ -25,7 +25,7 @@ type GameManagerProps = {
 export interface IGameManager {
   isConnected(connection: UserConnection): boolean;
   connect(connection: UserConnection): GameAndPlayer;
-  disconnect(connection: UserConnection): { game: IGame; gracePeriod: boolean };
+  disconnect(connection: UserConnection): { gracePeriod: boolean };
   leave(connection: UserConnection): IGame;
   connectedCount(gameId: GameId): number;
   usernames(gameId: GameId): Record<string, boolean>;
@@ -154,10 +154,16 @@ export class GameManager implements IGameManager {
     return game;
   }
 
-  disconnect(connection: UserConnection): { game: IGame; gracePeriod: boolean } {
+  disconnect(connection: UserConnection): { gracePeriod: boolean } {
+    if (!this.gameRepository.exists(connection.gameId)) {
+      this.deleteConnection(connection);
+      this.sessionTokens.delete(this.tokenKey(connection.gameId, connection.username));
+      this.cancelGraceTimer(connection.gameId, connection.username);
+      return { gracePeriod: false };
+    }
+
     if (!this.isConnected(connection)) {
-      const game = this.gameRepository.findById(connection.gameId);
-      return { game, gracePeriod: false };
+      return { gracePeriod: false };
     }
 
     const game = this.gameRepository.findById(connection.gameId);
@@ -171,17 +177,17 @@ export class GameManager implements IGameManager {
       if (this.connectedCount(connection.gameId) === 0) {
         this.gameRepository.destroy(connection.gameId);
       }
-      return { game, gracePeriod: false };
+      return { gracePeriod: false };
     }
 
     this.deleteConnection(connection);
 
     if (this.connectedCount(connection.gameId) === 0 && !game.isStarted()) {
       this.gameRepository.destroy(connection.gameId);
-      return { game, gracePeriod: false };
+      return { gracePeriod: false };
     }
 
     this.startGraceTimer(connection);
-    return { game, gracePeriod: true };
+    return { gracePeriod: true };
   }
 }

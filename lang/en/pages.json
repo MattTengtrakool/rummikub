@@ -50,6 +50,19 @@
             "relaxed_description": "Warning only when time runs out",
             "seconds": "{n}s",
             "times_up": "Time's up!"
+        },
+        "ai": {
+            "label": "AI players",
+            "add": "Add AI player",
+            "remove": "Remove AI player",
+            "cancel": "Cancel",
+            "choose_difficulty": "Choose difficulty",
+            "max_reached": "Maximum number of players reached",
+            "difficulty": {
+                "easy": "Easy",
+                "medium": "Medium",
+                "hard": "Hard"
+            }
         }
     },
     "rules": {

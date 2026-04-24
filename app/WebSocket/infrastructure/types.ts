@@ -9,6 +9,7 @@ import { Server, Socket as ServerSocker, type Namespace } from "socket.io";
 import { Socket } from "socket.io-client";
 
 export type OpponentDto = {
+  id: string;
   username: string;
   cardCount: number;
   isPlaying: boolean;
@@ -81,6 +82,8 @@ export interface ClientToServerEvents {
   "player.pass": () => void;
   "cursor.move": (position: CursorPosition) => void;
   "game.updateSettings": (settings: { timerSettings: TimerSettings }) => void;
+  "game.ai.add": (difficulty: AIDifficulty) => void;
+  "game.ai.remove": (playerId: string) => void;
   "chat.send": (text: string) => void;
   "reaction.send": (reaction: ReactionType) => void;
 }

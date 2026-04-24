@@ -1,3 +1,4 @@
+import type { AIDifficulty } from "@/app/AI/domain/types";
 import type {
   GameInfosDto,
   TimerSettings,
@@ -234,6 +235,14 @@ export const setupGameSocket = ({
     socket.emit("game.updateSettings", settings);
   };
 
+  const addAIPlayer = (difficulty: AIDifficulty) => {
+    socket.emit("game.ai.add", difficulty);
+  };
+
+  const removeAIPlayer = (playerId: string) => {
+    socket.emit("game.ai.remove", playerId);
+  };
+
   const sendChatMessage = (text: string) => {
     socket.emit("chat.send", text);
   };
@@ -257,6 +266,8 @@ export const setupGameSocket = ({
     returnCard,
     moveCursor,
     updateSettings,
+    addAIPlayer,
+    removeAIPlayer,
     sendChatMessage,
     sendReaction,
   };

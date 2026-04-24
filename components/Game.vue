@@ -42,7 +42,7 @@
     <header class="bg-white/80 backdrop-blur-sm shadow-sm relative z-10">
       <nav class="flex gap-1 md:gap-2 px-2 py-2 md:px-4 md:py-2.5 items-center justify-between">
         <!-- Player entries: visible on desktop row 1, hidden on mobile (moved to row 2) -->
-        <div class="hidden md:flex items-center gap-2.5 min-w-0">
+        <div class="hidden md:flex items-center gap-2.5 min-w-0 flex-1 overflow-x-auto scrollbar-hide">
           <div v-if="game.gameInfos.value.state === 'created'" class="flex items-center gap-1.5 shrink-0">
             <div class="size-6 rounded-full bg-separator flex items-center justify-center">
               <UserCircleIcon class="size-4 text-body-text-disabled" />
@@ -51,10 +51,16 @@
           </div>
 
           <template v-if="game.gameInfos.value.state === 'started'">
-            <span class="player-entry shrink-0" :class="{ 'player-entry--active': game.selfPlayer.value.isPlaying }">
+            <span
+              class="player-entry shrink-0"
+              :class="{
+                'player-entry--active': game.selfPlayer.value.isPlaying,
+                'player-entry--compact': compactPlayerEntries,
+              }"
+            >
               <span class="player-dot" :class="{ 'player-dot--active': game.selfPlayer.value.isPlaying }" />
               <span class="player-name">{{ t("pages.game.you") }}</span>
-              <span class="tile-count-full">
+              <span v-if="!compactPlayerEntries" class="tile-count-full">
                 <span
                   v-for="n in Math.min(game.selfPlayer.value.cards.length, maxVisibleTiles)"
                   :key="n"
@@ -63,10 +69,20 @@
                 <span v-if="game.selfPlayer.value.cards.length > maxVisibleTiles" class="tile-overflow">...</span>
                 <span class="tile-number">{{ game.selfPlayer.value.cards.length }}</span>
               </span>
+              <span v-else class="tile-count-inline">
+                <span class="tile-icon" />
+                {{ game.selfPlayer.value.cards.length }}
+              </span>
             </span>
 
             <template v-for="(opponent, i) in game.opponents.value" :key="'desktop-' + opponent.username">
-              <span class="player-entry shrink-0" :class="{ 'player-entry--their-turn': opponent.isPlaying }">
+              <span
+                class="player-entry shrink-0"
+                :class="{
+                  'player-entry--their-turn': opponent.isPlaying,
+                  'player-entry--compact': compactPlayerEntries,
+                }"
+              >
                 <CpuChipIcon v-if="opponent.isAI" class="size-3 shrink-0" :class="opponent.isPlaying ? 'text-blue-500' : 'text-body-text-disabled'" />
                 <span
                   v-else
@@ -78,7 +94,7 @@
                   :style="!opponent.isPlaying ? { backgroundColor: PLAYER_COLORS[i % PLAYER_COLORS.length] } : undefined"
                 />
                 <span class="player-name">{{ opponent.username }}</span>
-                <span class="tile-count-full">
+                <span v-if="!compactPlayerEntries" class="tile-count-full">
                   <span
                     v-for="n in Math.min(opponent.cardCount, maxVisibleTiles)"
                     :key="n"
@@ -86,6 +102,10 @@
                   />
                   <span v-if="opponent.cardCount > maxVisibleTiles" class="tile-overflow">...</span>
                   <span class="tile-number">{{ opponent.cardCount }}</span>
+                </span>
+                <span v-else class="tile-count-inline">
+                  <span class="tile-icon" />
+                  {{ opponent.cardCount }}
                 </span>
               </span>
             </template>
@@ -227,6 +247,14 @@
         @update="game.updateSettings({ timerSettings: $event })"
       />
 
+      <AIPlayersPanel
+        v-if="game.selfPlayer.value?.admin && !game.gameInfos.value.isSoloAIGame"
+        :ai-opponents="aiOpponents"
+        :can-add="game.gameInfos.value.playersCount < MAX_PLAYERS"
+        @add="game.addAIPlayer($event)"
+        @remove="game.removeAIPlayer($event)"
+      />
+
       <div
         v-else-if="game.gameInfos.value.timerSettings.enabled"
         class="flex flex-col items-center gap-1 text-sm text-body-text-disabled"
@@ -301,18 +329,25 @@ import { BookOpenIcon, ExclamationTriangleIcon, CheckIcon, ArrowRightStartOnRect
 import { ClipboardDocumentIcon } from "@heroicons/vue/20/solid";
 import GameRulesModal from "@/components/GameRulesModal.vue";
 import SettingsModal from "@/components/SettingsModal.vue";
+import AIPlayersPanel from "@/components/AIPlayersPanel.vue";
 import { useMusic } from "@/composables/useMusic";
 import { useSettings } from "@/composables/useSettings";
+import { MAX_PLAYERS } from "@/app/Player/domain/constants/player";
 
 const PLAYER_COLORS = [
   "#ef4444", "#3b82f6", "#22c55e", "#f59e0b",
   "#a855f7", "#ec4899", "#14b8a6", "#f97316",
 ];
 
-const maxVisibleTiles = computed(() => {
-  const totalPlayers = 1 + (game.opponents.value?.length ?? 0);
-  return totalPlayers >= 3 ? 10 : 14;
-});
+const totalPlayers = computed(
+  () => 1 + (game.opponents.value?.length ?? 0),
+);
+
+const maxVisibleTiles = computed(() =>
+  totalPlayers.value >= 3 ? 10 : 14,
+);
+
+const compactPlayerEntries = computed(() => totalPlayers.value >= 4);
 
 const modal = useModal();
 const { params } = useRoute();
@@ -343,7 +378,7 @@ watch(
   () => game.gameInfos.value,
   (infos) => {
     if (
-      infos?.isAIGame &&
+      infos?.isSoloAIGame &&
       infos.state === "created" &&
       game.selfPlayer.value?.canStartGame
     ) {
@@ -351,6 +386,10 @@ watch(
     }
   },
   { immediate: true },
+);
+
+const aiOpponents = computed(() =>
+  (game.opponents.value ?? []).filter((o) => o.isAI),
 );
 
 function handleLeaveGame() {
@@ -443,6 +482,20 @@ async function copyLink() {
   text-overflow: ellipsis;
   max-width: 60px;
   color: #57534e;
+}
+
+.player-entry--compact .player-name {
+  max-width: 80px;
+}
+
+.tile-count-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #78716c;
 }
 
 .player-entry--active .player-name {

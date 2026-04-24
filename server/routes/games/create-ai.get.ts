@@ -1,7 +1,9 @@
 import { app } from "@/app/app";
 import type { AIDifficulty } from "@/app/AI/domain/types";
+import { MAX_PLAYERS } from "@/app/Player/domain/constants/player";
 
 const VALID_DIFFICULTIES: AIDifficulty[] = ["easy", "medium", "hard"];
+const MAX_AI_OPPONENTS = MAX_PLAYERS - 1;
 
 export default defineEventHandler((event) => {
   const query = getQuery(event);
@@ -11,9 +13,17 @@ export default defineEventHandler((event) => {
     throw createError({ statusCode: 400, message: "Invalid difficulty" });
   }
 
+  const requestedCount = parseInt(query.aiCount as string);
+  const aiCount = Number.isFinite(requestedCount)
+    ? Math.min(Math.max(requestedCount, 1), MAX_AI_OPPONENTS)
+    : 1;
+
   const game = app.gameRepository.create();
 
-  game.addAIPlayer(difficulty as AIDifficulty);
+  game.markAsSoloAIGame();
+  for (let i = 0; i < aiCount; i++) {
+    game.addAIPlayer(difficulty as AIDifficulty);
+  }
 
   if (query.timerEnabled === "true") {
     const durationSeconds = parseInt(query.timerDuration as string) || 60;

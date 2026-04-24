@@ -1,6 +1,7 @@
 import {
   type AIDifficulty,
-  AI_USERNAMES,
+  AI_BOT_NAMES,
+  formatAIUsername,
 } from "@/app/AI/domain/types";
 import {
   DrawStack,
@@ -57,6 +58,7 @@ export type GameInfosDto = {
   endReason?: GameEndReason;
   timerSettings: TimerSettings;
   isAIGame: boolean;
+  isSoloAIGame: boolean;
   aiDifficulty?: AIDifficulty;
 };
 
@@ -110,6 +112,10 @@ export interface IGame {
 
   isAIGame(): boolean;
 
+  isSoloAIGame(): boolean;
+
+  markAsSoloAIGame(): void;
+
   toDto(): GameDto;
 
   toInfosDto(): GameInfosDto;
@@ -140,6 +146,7 @@ export class Game implements IGame {
   private generateUserId: GenerateUserIdFn;
   private consecutivePasses: number = 0;
   private endReason?: GameEndReason;
+  private soloAIGame: boolean = false;
 
   constructor(props: GameProps) {
     this.id = props.id;
@@ -186,7 +193,7 @@ export class Game implements IGame {
 
   addAIPlayer(difficulty: AIDifficulty): IPlayer {
     const player = this.addPlayer({
-      username: AI_USERNAMES[difficulty],
+      username: this.generateUniqueAIUsername(),
     }, class AIPlayer extends Player {
       constructor(props: any) {
         super({ ...props, isAI: true, aiDifficulty: difficulty });
@@ -194,6 +201,24 @@ export class Game implements IGame {
     });
     player.admin = false;
     return player;
+  }
+
+  private generateUniqueAIUsername(): string {
+    const existing = new Set(this.players.map((p) => p.username));
+
+    const available = AI_BOT_NAMES
+      .map((name) => formatAIUsername(name))
+      .filter((username) => !existing.has(username));
+
+    if (available.length > 0) {
+      return available[Math.floor(Math.random() * available.length)];
+    }
+
+    for (let n = 2; n < 1000; n++) {
+      const candidate = formatAIUsername(`Bot ${n}`);
+      if (!existing.has(candidate)) return candidate;
+    }
+    return formatAIUsername(`Bot ${Date.now()}`);
   }
 
   removePlayer(id: string): void {
@@ -367,6 +392,14 @@ export class Game implements IGame {
     return this.players.some((player) => player.isAI);
   }
 
+  isSoloAIGame(): boolean {
+    return this.soloAIGame;
+  }
+
+  markAsSoloAIGame(): void {
+    this.soloAIGame = true;
+  }
+
   isStarted(): boolean {
     return this.state === "started";
   }
@@ -400,6 +433,7 @@ export class Game implements IGame {
       endReason: this.endReason,
       timerSettings: this.timerSettings,
       isAIGame: this.isAIGame(),
+      isSoloAIGame: this.isSoloAIGame(),
       aiDifficulty: this.players.find((p) => p.isAI)?.aiDifficulty,
     };
   }

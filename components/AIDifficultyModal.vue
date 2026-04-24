@@ -12,13 +12,17 @@ const difficulties: { id: AIDifficulty; label: string; description: string; colo
 ];
 
 const selectedDifficulty = ref<AIDifficulty>("medium");
+const aiCount = ref(1);
 const timerEnabled = ref(false);
 const timerDuration = ref(60);
 const timerStrict = ref(false);
 
+const aiCountOptions = [1, 2, 3, 4, 5];
+
 function startAIGame() {
   const params = new URLSearchParams();
   params.set("difficulty", selectedDifficulty.value);
+  params.set("aiCount", String(aiCount.value));
   if (timerEnabled.value) {
     params.set("timerEnabled", "true");
     params.set("timerDuration", String(timerDuration.value));
@@ -63,6 +67,23 @@ function startAIGame() {
             <span class="text-sm font-semibold" :class="d.color">{{ d.label }}</span>
             <span class="text-xs text-body-text-disabled">{{ d.description }}</span>
           </div>
+        </button>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-2">
+      <span class="text-xs font-medium text-body-text-disabled uppercase tracking-wider">AI opponents</span>
+      <div class="flex gap-1.5">
+        <button
+          v-for="n in aiCountOptions"
+          :key="n"
+          @click="aiCount = n"
+          class="flex-1 h-8 rounded-md text-xs font-semibold transition-colors"
+          :class="aiCount === n
+            ? 'bg-body-text text-white'
+            : 'bg-black/[0.04] text-body-text hover:bg-black/[0.08]'"
+        >
+          {{ n }}
         </button>
       </div>
     </div>

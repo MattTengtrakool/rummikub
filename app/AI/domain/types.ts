@@ -11,11 +11,29 @@ export type AITurnResult =
   | { action: "draw" }
   | { action: "pass" };
 
-export const AI_USERNAMES: Record<AIDifficulty, string> = {
-  easy: "AI",
-  medium: "AI",
-  hard: "AI",
-};
+export const AI_BOT_SUFFIX = "(bot)";
+
+export const AI_BOT_NAMES = [
+  "Meld Gibson",
+  "Tile Murray",
+  "Rack Obama",
+  "Tilor Swift",
+  "Meldy Cyrus",
+  "Bot Marley",
+  "Sir Melds-a-Lot",
+  "Shuffleupagus",
+  "R2-Tile2",
+  "Meldonna",
+  "The Tilefather",
+  "Rack-n-Roll",
+  "ChatGP-Tile",
+  "Keanu Tiles",
+  "Meldroid",
+  "Jokerface",
+];
+
+export const formatAIUsername = (name: string): string =>
+  `${name} ${AI_BOT_SUFFIX}`;
 
 export const AI_THINKING_DELAY: Record<AIDifficulty, { min: number; max: number }> = {
   easy: { min: 1000, max: 2000 },

@@ -82,7 +82,12 @@ export const registerGameEvents = ({
     }
   };
 
+  const gameStillExists = (game: IGame) =>
+    app.gameRepository.exists(game.id);
+
   const emitGameUpdate = (game: IGame) => {
+    if (!gameStillExists(game)) return;
+
     const gameDto = game.toDto();
 
     io.to(gameRoom(game)).emit("gameBoard.update", gameDto.gameBoard);
@@ -93,6 +98,7 @@ export const registerGameEvents = ({
       const opponents: OpponentDto[] = gameDto.players
         .filter((p) => p.id !== player.id)
         .map((p) => ({
+          id: p.id,
           username: p.username,
           cardCount: p.cards.length,
           isPlaying: p.isPlaying,
@@ -107,6 +113,8 @@ export const registerGameEvents = ({
   };
 
   const emitConnectionsUpdate = (game: IGame) => {
+    if (!gameStillExists(game)) return;
+
     io.to(gameRoom(game)).emit(
       "connectedUsernames.update",
       gameManager.usernames(game.id),
@@ -241,6 +249,42 @@ export const registerGameEvents = ({
         timerSettings: game.timerSettings,
       });
       emitGameUpdate(game);
+    });
+
+    socket.on("game.ai.add", (difficulty) => {
+      if (!player.admin) return;
+      if (game.isStarted() || game.isEnded()) return;
+      if (!["easy", "medium", "hard"].includes(difficulty)) return;
+      if (game.isFull()) return;
+
+      try {
+        game.addAIPlayer(difficulty);
+      } catch (e) {
+        console.error("Failed to add AI player:", e);
+        return;
+      }
+
+      emitGameUpdate(game);
+      emitConnectionsUpdate(game);
+    });
+
+    socket.on("game.ai.remove", (playerId) => {
+      if (!player.admin) return;
+      if (game.isStarted() || game.isEnded()) return;
+      if (typeof playerId !== "string") return;
+
+      const target = game.toDto().players.find((p) => p.id === playerId);
+      if (!target || !target.isAI) return;
+
+      try {
+        game.removePlayer(playerId);
+      } catch (e) {
+        console.error("Failed to remove AI player:", e);
+        return;
+      }
+
+      emitGameUpdate(game);
+      emitConnectionsUpdate(game);
     });
 
     socket.on("game.leave", () => {
@@ -437,7 +481,7 @@ export const registerGameEvents = ({
         io.to(gameRoom(game)).emit("player.reconnected", username);
       }
 
-      if (!isReconnect && game.isAIGame() && game.canStart()) {
+      if (!isReconnect && game.isSoloAIGame() && game.canStart()) {
         game.start();
         app.incrementGamesPlayed();
         emitGameUpdate(game);

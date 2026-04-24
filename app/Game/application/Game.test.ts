@@ -69,6 +69,58 @@ describe("Game", () => {
     });
   });
 
+  describe("addAIPlayer", () => {
+    test("adds an AI player with the given difficulty", () => {
+      const game = new Game({ id: "game" });
+      game.addPlayer({ username: "host" });
+
+      const ai = game.addAIPlayer("medium");
+
+      expect(ai.isAI).toBe(true);
+      expect(ai.aiDifficulty).toBe("medium");
+      expect(ai.admin).toBe(false);
+    });
+
+    test("produces unique usernames for multiple AI players", () => {
+      const game = new Game({ id: "game" });
+      game.addPlayer({ username: "host" });
+
+      const first = game.addAIPlayer("easy");
+      const second = game.addAIPlayer("easy");
+      const third = game.addAIPlayer("hard");
+
+      const usernames = [first.username, second.username, third.username];
+      expect(new Set(usernames).size).toBe(3);
+    });
+  });
+
+  describe("isSoloAIGame / markAsSoloAIGame", () => {
+    test("defaults to false", () => {
+      const game = new Game({ id: "game" });
+
+      expect(game.isSoloAIGame()).toBe(false);
+      expect(game.toInfosDto().isSoloAIGame).toBe(false);
+    });
+
+    test("is true after markAsSoloAIGame", () => {
+      const game = new Game({ id: "game" });
+
+      game.markAsSoloAIGame();
+
+      expect(game.isSoloAIGame()).toBe(true);
+      expect(game.toInfosDto().isSoloAIGame).toBe(true);
+    });
+
+    test("adding an AI in a regular game does not set isSoloAIGame", () => {
+      const game = new Game({ id: "game" });
+      game.addPlayer({ username: "host" });
+      game.addAIPlayer("medium");
+
+      expect(game.isAIGame()).toBe(true);
+      expect(game.isSoloAIGame()).toBe(false);
+    });
+  });
+
   describe("removePlayer", () => {
     test("throw error if unknown player id", () => {
       const game = new Game({ id: "game", generateUserId: () => "player" });

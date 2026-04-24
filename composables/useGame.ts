@@ -1,3 +1,4 @@
+import type { AIDifficulty } from "@/app/AI/domain/types";
 import type { CardColor, CardNumber } from "@/app/Card/domain/dtos/card";
 import type {
   GameInfosDto,
@@ -119,6 +120,8 @@ export const useGame = (gameId: any, username: any) => {
     moveCursor,
     undoLastAction: rawUndoLastAction,
     updateSettings,
+    addAIPlayer,
+    removeAIPlayer,
     sendChatMessage,
     sendReaction,
   } = setupGameSocket({
@@ -407,6 +410,8 @@ export const useGame = (gameId: any, username: any) => {
     pass: () => { play("button-click", 0.4); pass(); },
     moveCursor,
     updateSettings,
+    addAIPlayer: (difficulty: AIDifficulty) => addAIPlayer(difficulty),
+    removeAIPlayer: (playerId: string) => removeAIPlayer(playerId),
     sendChatMessage,
     sendReaction,
     cardDraggingHandler,
